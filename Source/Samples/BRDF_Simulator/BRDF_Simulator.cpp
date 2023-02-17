@@ -254,7 +254,8 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     }
 
     if (mOrthoCam) {
-        mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(-4.0f, 4.0f, -4.0f, 4.0f, mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
+        
+        mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(-4.0f * mpScene->getCamera()->getAspectRatio(), 4.0f * mpScene->getCamera()->getAspectRatio(), -4.0f , 4.0f, mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
     }
     else {
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::perspective(Falcor::focalLengthToFovY(mpScene->getCamera()->getFocalLength(), mpScene->getCamera()->getFrameHeight()), mpScene->getCamera()->getFrameWidth()/ mpScene->getCamera()->getFrameHeight(), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));

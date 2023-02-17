@@ -56,7 +56,7 @@ float4 psMain(VSOut vsOut, uint triangleIndex : SV_PrimitiveID) : SV_TARGET
         // Create BSDF instance.
         let bsdf = gScene.materials.getBSDF(sd, lod);
 
-        float3 color = bsdf.getProperties(sd).emission;
+        float3 color = vsOut.normalW;// bsdf.getProperties(sd).emission;
 
         const uint2 pixel = vsOut.posH.xy;
         TinyUniformSampleGenerator sg = TinyUniformSampleGenerator(pixel, 0);
@@ -69,6 +69,6 @@ float4 psMain(VSOut vsOut, uint triangleIndex : SV_PrimitiveID) : SV_TARGET
             color += bsdf.eval(sd, ls.dir, sg) * ls.Li;
         }
 
-        return float4(color, 1.f);
+        return float4(vsOut.normalW, 1.f);
     }
 }
