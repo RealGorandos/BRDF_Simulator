@@ -1,5 +1,5 @@
 /***************************************************************************
- # Copyright (c) 2015-21, NVIDIA CORPORATION. All rights reserved.
+ # Copyright (c) 2015-22, NVIDIA CORPORATION. All rights reserved.
  #
  # Redistribution and use in source and binary forms, with or without
  # modification, are permitted provided that the following conditions
@@ -33,14 +33,69 @@ using namespace Falcor;
 class BRDF_Simulator : public IRenderer
 {
 public:
+
+    enum class TriangleType : uint32_t
+    {
+        None,
+        Quadrilateral,   ///< Quadrilateral Shape
+        Dummy,  ///< Dummy Triangle
+        Disk,   ///< Cull back-facing primitives
+        Cube,
+        Sphere,
+    };
+
+    struct BRDF_Object {
+        Falcor::float3 position;
+        BRDF_Simulator::TriangleType shapeType;
+        std::string materialName;
+        Falcor::ShadingModel shadingModel;
+    };
+
+
     void onLoad(RenderContext* pRenderContext) override;
     void onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
-    void onShutdown() override;
     void onResizeSwapChain(uint32_t width, uint32_t height) override;
     bool onKeyEvent(const KeyboardEvent& keyEvent) override;
     bool onMouseEvent(const MouseEvent& mouseEvent) override;
-    void onHotReload(HotReloadFlags reloaded) override;
     void onGuiRender(Gui* pGui) override;
 
 private:
+    void renderGeometry();
+    void resetCamera();
+    void setModelString(double loadTime);
+    void setCamController();
+    void updateGrid();
+    void addShaderLib();
+    void removeOutGridObj();
+    bool isExist();
+
+    bool mUseTriLinearFiltering = true;
+    Sampler::SharedPtr mpPointSampler = nullptr;
+    Sampler::SharedPtr mpLinearSampler = nullptr;
+    GraphicsProgram::SharedPtr mpProgram = nullptr;
+    GraphicsVars::SharedPtr mpProgramVars = nullptr;
+    GraphicsState::SharedPtr mpGraphicsState = nullptr;
+
+    bool mDrawWireframe = false;
+    bool mUseOriginalTangents = false;
+    bool mDontMergeMaterials = false;
+    bool mIsGeometry = false;
+    bool mOrthoCam = false;
+    Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
+
+    Scene::SharedPtr mpScene;
+    SceneBuilder::SharedPtr mSceneBuilder ;
+    RasterizerState::SharedPtr mpWireframeRS = nullptr;
+    RasterizerState::CullMode mCullMode = RasterizerState::CullMode::Back;
+
+    DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
+    DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
+
+    std::vector<BRDF_Object> brdf_Objects;
+    Falcor::int2 gridSizeTemp = Falcor::int2(1);
+    Falcor::int2 gridSize = Falcor::int2(1);
+    Falcor::float3 shapePosition = Falcor::float3(0);
+    Falcor::rmcv::mat4 storeProjMat = Falcor::rmcv::mat4(1.f);
+    BRDF_Simulator::TriangleType mTriangleType = BRDF_Simulator::TriangleType::None;
+    std::string mModelString;
 };
