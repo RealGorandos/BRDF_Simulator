@@ -81,6 +81,7 @@ private:
     bool mDontMergeMaterials = false;
     bool mIsGeometry = false;
     bool mOrthoCam = false;
+    bool mTogglePers = false;
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
 
     Scene::SharedPtr mpScene;

@@ -20,16 +20,19 @@ void BRDF_Simulator::setModelString(double loadTime)
 }
 
 void BRDF_Simulator::addShaderLib() {
-    Program::Desc desc;
-    desc.addShaderModules(mpScene->getShaderModules());
-    desc.addShaderLibrary("Samples/BRDF_Simulator/BRDF_Simulator.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
-    desc.addTypeConformances(mpScene->getTypeConformances());
+    {
+        Program::Desc desc;
+        desc.addShaderModules(mpScene->getShaderModules());
+        desc.addShaderLibrary("Samples/BRDF_Simulator/BRDF_Simulator.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
+        desc.addTypeConformances(mpScene->getTypeConformances());
 
-    mpProgram = GraphicsProgram::create(desc, mpScene->getSceneDefines());
+        mpProgram = GraphicsProgram::create(desc, mpScene->getSceneDefines());
+    }
+
     mpProgramVars = GraphicsVars::create(mpProgram->getReflector());
     mpGraphicsState->setProgram(mpProgram);
 
-    mpScene->getMaterialSystem()->setDefaultTextureSampler(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
+    //mpScene->getMaterialSystem()->setDefaultTextureSampler(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
 
 
 
@@ -56,27 +59,27 @@ void BRDF_Simulator::removeOutGridObj() {
 }
 void BRDF_Simulator::updateGrid() {
         mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
-        
+        Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Grid Material", ShadingModel::MetalRough);
         SceneBuilder::Node rowN;
         rowN.transform[2][3] = float(0);
-        mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), StandardMaterial::create("Grid Material", ShadingModel::MetalRough)));
+        mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), Material));
         for (int row = 1; row <= gridSize[0]; row++) {
             rowN.transform[2][3] = -float(row);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), StandardMaterial::create("Grid Material", ShadingModel::MetalRough)));
+            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), Material));
 
             rowN.transform[2][3] = +float(row);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), StandardMaterial::create("Grid Material", ShadingModel::MetalRough)));
+            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), Material));
         }
 
         SceneBuilder::Node colN;
         colN.transform[0][3] = float(0);
-        mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), StandardMaterial::create("Grid Material", ShadingModel::MetalRough)));
+        mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), Material));
         for (int col = 1; col <= gridSize[1]; col++) {
             colN.transform[0][3] = -float(col);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), StandardMaterial::create("Grid Material", ShadingModel::MetalRough)));
+            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), Material));
 
             colN.transform[0][3] = float(col);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), StandardMaterial::create("Grid Material", ShadingModel::MetalRough)));
+            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), Material));
         }
 
         SceneBuilder::Node k;
@@ -94,13 +97,15 @@ void BRDF_Simulator::updateGrid() {
             case BRDF_Simulator::TriangleType::Cube:
                 mid = mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.5f)), StandardMaterial::create(dataRender.materialName, dataRender.shadingModel));
                 break;
+            case BRDF_Simulator::TriangleType::Sphere:
+                mid = mSceneBuilder->addTriangleMesh(TriangleMesh::createSphere(0.3f), StandardMaterial::create(dataRender.materialName, dataRender.shadingModel));
+                break;
             default:
                 FALCOR_UNREACHABLE();
             }
             mSceneBuilder->addMeshInstance(nid, mid);
         }
 
-        mpScene = mSceneBuilder->getScene();
         mpScene = mSceneBuilder->getScene();
         addShaderLib();
 }
@@ -120,6 +125,9 @@ void BRDF_Simulator::renderGeometry() {
             break;
         case BRDF_Simulator::TriangleType::Cube:
             obj.shapeType = BRDF_Simulator::TriangleType::Cube;
+            break;
+        case BRDF_Simulator::TriangleType::Sphere:
+            obj.shapeType = BRDF_Simulator::TriangleType::Sphere;
             break;
         default:
             FALCOR_UNREACHABLE();
@@ -157,6 +165,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
             geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::None, "None" });
             geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::Quadrilateral, "Quadrilateral" });
             geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::Cube, "Cube" });
+            geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::Sphere, "Sphere" });
             objSettings.dropdown("Shape Type", geometryList, (uint32_t&)mTriangleType);
             objSettings.var("Position", shapePosition, 0.f);
             if(objSettings.button("Render Geometry") && !isExist()){
@@ -194,9 +203,9 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 
     if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
 
-    if (w.checkbox("Orthographic View", mOrthoCam)) {resetCamera();}
+    if (w.checkbox("Orthographic View", mOrthoCam)) { resetCamera(); }
 
-    if (mpScene) mpScene->renderUI(w);
+    //if (mpScene) mpScene->renderUI(w);
 }
 
 void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
@@ -259,6 +268,7 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     }
     else {
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::perspective(Falcor::focalLengthToFovY(mpScene->getCamera()->getFocalLength(), mpScene->getCamera()->getFrameHeight()), mpScene->getCamera()->getFrameWidth()/ mpScene->getCamera()->getFrameHeight(), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
+
     }
     TextRenderer::render(pRenderContext, mModelString, pTargetFbo, float2(10, 30));
 }
