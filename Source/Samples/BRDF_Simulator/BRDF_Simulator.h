@@ -60,14 +60,14 @@ public:
     void onGuiRender(Gui* pGui) override;
 
 private:
-    void renderGeometry();
+    void renderSurface();
     void resetCamera();
     void setModelString(double loadTime);
     void setCamController();
     void updateGrid();
     void addShaderLib();
-    void removeOutGridObj();
-    bool isExist();
+  /*  void removeOutGridObj();
+    bool isExist();*/
 
     bool mUseTriLinearFiltering = true;
     Sampler::SharedPtr mpPointSampler = nullptr;
@@ -93,8 +93,8 @@ private:
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 
     std::vector<BRDF_Object> brdf_Objects;
-    Falcor::int2 gridSizeTemp = Falcor::int2(1);
-    Falcor::int2 gridSize = Falcor::int2(1);
+    Falcor::int2 planSizeTemp = Falcor::int2(10);
+    Falcor::int2 planSize = Falcor::int2(10);
     Falcor::float3 shapePosition = Falcor::float3(0);
     Falcor::rmcv::mat4 storeProjMat = Falcor::rmcv::mat4(1.f);
     BRDF_Simulator::TriangleType mTriangleType = BRDF_Simulator::TriangleType::None;

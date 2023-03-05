@@ -32,115 +32,31 @@ void BRDF_Simulator::addShaderLib() {
     mpProgramVars = GraphicsVars::create(mpProgram->getReflector());
     mpGraphicsState->setProgram(mpProgram);
 
-    //mpScene->getMaterialSystem()->setDefaultTextureSampler(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
-
-
-
     setCamController();
 
 }
 
-bool BRDF_Simulator::isExist() {
-    for (int i = 0; i < brdf_Objects.size(); i++) {
-        if (shapePosition == brdf_Objects[i].position) {
-            return true;
-        }
-    }
-    if ((shapePosition[0] >= 2 * gridSize[1] || shapePosition[2] >= 2 * gridSize[0])) { return true; }
-    return false;
-}
-
-void BRDF_Simulator::removeOutGridObj() {
-    for (int i = 0; i < brdf_Objects.size(); i++) {
-        if (brdf_Objects[i].position[0] >= 2 * gridSize[1] || brdf_Objects[i].position[2] >= 2 * gridSize[0]) {
-            brdf_Objects.erase(brdf_Objects.begin()+i);
-        }
-    }
-}
-void BRDF_Simulator::updateGrid() {
-        mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
-        Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Grid Material", ShadingModel::MetalRough);
-        SceneBuilder::Node rowN;
-        rowN.transform[2][3] = float(0);
-        mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), Material));
-        for (int row = 1; row <= gridSize[0]; row++) {
-            rowN.transform[2][3] = -float(row);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), Material));
-
-            rowN.transform[2][3] = +float(row);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(rowN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(2.f * float(gridSize[1]), 0.01f, 0.01f)), Material));
-        }
-
-        SceneBuilder::Node colN;
-        colN.transform[0][3] = float(0);
-        mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), Material));
-        for (int col = 1; col <= gridSize[1]; col++) {
-            colN.transform[0][3] = -float(col);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), Material));
-
-            colN.transform[0][3] = float(col);
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(colN), mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.01f, 0.01f, 2.f * float(gridSize[0]))), Material));
-        }
-
-        SceneBuilder::Node k;
-        for (auto dataRender : brdf_Objects) {
-            k.transform[0][3] = dataRender.position[0] - float(gridSize[1]) + 0.5;
-            k.transform[1][3] = dataRender.position[1];
-            k.transform[2][3] = dataRender.position[2] - float(gridSize[0]) + 0.5;
-            Falcor::NodeID nid = mSceneBuilder->addNode(k);
-            Falcor::MeshID mid;
-            switch (dataRender.shapeType)
-            {
-            case BRDF_Simulator::TriangleType::Quadrilateral:
-                mid = mSceneBuilder->addTriangleMesh(TriangleMesh::createQuad(float2(0.5f)), StandardMaterial::create(dataRender.materialName, dataRender.shadingModel));
-                break;
-            case BRDF_Simulator::TriangleType::Cube:
-                mid = mSceneBuilder->addTriangleMesh(TriangleMesh::createCube(float3(0.5f)), StandardMaterial::create(dataRender.materialName, dataRender.shadingModel));
-                break;
-            case BRDF_Simulator::TriangleType::Sphere:
-                mid = mSceneBuilder->addTriangleMesh(TriangleMesh::createSphere(0.3f), StandardMaterial::create(dataRender.materialName, dataRender.shadingModel));
-                break;
-            default:
-                FALCOR_UNREACHABLE();
-            }
-            mSceneBuilder->addMeshInstance(nid, mid);
-        }
-
-        mpScene = mSceneBuilder->getScene();
-        addShaderLib();
-}
 
 
-void BRDF_Simulator::renderGeometry() {
-    if (mTriangleType != BRDF_Simulator::TriangleType::None)
-    { 
+void BRDF_Simulator::renderSurface() {
+
         CpuTimer timer;
         timer.update();
-        mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
-        BRDF_Object obj;
-        switch (mTriangleType)
-        {
-        case BRDF_Simulator::TriangleType::Quadrilateral:
-            obj.shapeType = BRDF_Simulator::TriangleType::Quadrilateral;            
-            break;
-        case BRDF_Simulator::TriangleType::Cube:
-            obj.shapeType = BRDF_Simulator::TriangleType::Cube;
-            break;
-        case BRDF_Simulator::TriangleType::Sphere:
-            obj.shapeType = BRDF_Simulator::TriangleType::Sphere;
-            break;
-        default:
-            FALCOR_UNREACHABLE();
-        }
-        obj.materialName = "Object Material";
-        obj.shadingModel = ShadingModel::MetalRough;
-        obj.position = shapePosition;
-        brdf_Objects.push_back(obj);
 
-        updateGrid();
+        mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
+        SceneBuilder::Node N;
+        Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
+        for (int row = 0; row < planSize[0]; row++) {
+            for (int col = 0; col < planSize[1]; col++) {
+                N.transform[0][3] = float(col);
+                N.transform[2][3] = float(row);
+                mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(N), mSceneBuilder->addTriangleMesh(TriangleMesh::createQuad(float2(1.f)), Material));
+            }
+        }
+        mpScene = mSceneBuilder->getScene();
+        addShaderLib();
         timer.update();
         setModelString(timer.delta());
-    }
 }
 
 
@@ -149,31 +65,13 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
     Gui::Window w(pGui, "BRDF Simulator Demo", { 400, 300 }, { 0, 100 });
 
     {
-        auto gridSettings = w.group("Grid Settings");
-        gridSettings.var("Grid Size", gridSizeTemp, 1);
-        if (gridSettings.button("Update Grid")) {
-            gridSize = gridSizeTemp;
-            removeOutGridObj();
-            updateGrid();
+        auto gridSettings = w.group("Plan Settings");
+        gridSettings.var("Plan Size", planSizeTemp, 10);
+        if (gridSettings.button("Update Plan")) {
+            planSize = planSizeTemp;
+            renderSurface();
         }
     }
-
-
-    {
-            auto objSettings = w.group("Objects Settings");
-            Gui::DropdownList geometryList;
-            geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::None, "None" });
-            geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::Quadrilateral, "Quadrilateral" });
-            geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::Cube, "Cube" });
-            geometryList.push_back({ (uint32_t)BRDF_Simulator::TriangleType::Sphere, "Sphere" });
-            objSettings.dropdown("Shape Type", geometryList, (uint32_t&)mTriangleType);
-            objSettings.var("Position", shapePosition, 0.f);
-            if(objSettings.button("Render Geometry") && !isExist()){
-               
-                renderGeometry();
-            }
-    }
-
 
 
     {
@@ -232,7 +130,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     mpLinearSampler = Sampler::create(samplerDesc);
 
     resetCamera();
-    updateGrid();
+    renderSurface();
 }
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
@@ -263,7 +161,6 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     }
 
     if (mOrthoCam) {
-        
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(-4.0f * mpScene->getCamera()->getAspectRatio(), 4.0f * mpScene->getCamera()->getAspectRatio(), -4.0f , 4.0f, mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
     }
     else {
