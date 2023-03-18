@@ -2,28 +2,100 @@
 #include "Utils/UI/TextRenderer.h"
 #include "Utils/Math/FalcorMath.h"
 
-Falcor::Camera::SharedPtr constructCamera(const Falcor::Camera::SharedPtr refCamera);
 
 void BRDF_Simulator::setModelString(double loadTime)
 {
     FALCOR_ASSERT(mpScene != nullptr);
 
     mModelString = "Loading took " + std::to_string(loadTime) + " seconds.\n";
-    //mModelString += "Model has " + std::to_string(pModel->getVertexCount()) + " vertices, ";
-    //mModelString += std::to_string(pModel->getIndexCount()) + " indices, ";
-    //mModelString += std::to_string(pModel->getPrimitiveCount()) + " primitives, ";
     mModelString += std::to_string(mpScene->getMeshCount()) + " meshes, ";
     mModelString += std::to_string(mpScene->getGeometryInstanceCount()) + " instances, ";
     mModelString += std::to_string(mpScene->getMaterialCount()) + " materials, ";
-    //mModelString += std::to_string(pModel->getTextureCount()) + " textures, ";
-    //mModelString += std::to_string(pModel->getBufferCount()) + " buffers.\n";
 }
 
-void BRDF_Simulator::addShaderLib() {
+
+void BRDF_Simulator::setEnvMapPipeline() {
+    
+
+    mpCubeScene = Scene::create("cube.obj");
+
+    mpCubeProgram = GraphicsProgram::createFromFile("Samples/BRDF_Simulator/EnvMap.3d.hlsl", "vsMain", "psMain");
+    mpCubeProgram->addDefines(mpCubeScene->getSceneDefines());
+    mpCubeProgramVars = GraphicsVars::create(mpCubeProgram->getReflector());
+    mpFbo = Fbo::create();
+
+    // Create state
+    mpCubeGraphicsState = GraphicsState::create();
+    BlendState::Desc blendDesc;
+    for (uint32_t i = 1; i < Fbo::getMaxColorTargetCount(); i++) blendDesc.setRenderTargetWriteMask(i, false, false, false, false);
+    blendDesc.setIndependentBlend(true);
+    mpCubeGraphicsState->setBlendState(BlendState::create(blendDesc));
+
+    // Create the rasterizer state
+    RasterizerState::Desc rastDesc;
+    rastDesc.setCullMode(RasterizerState::CullMode::None).setDepthClamp(true);
+    mpRsState = RasterizerState::create(rastDesc);
+
+    DepthStencilState::Desc dsDesc;
+    dsDesc.setDepthWriteMask(false).setDepthFunc(DepthStencilState::Func::LessEqual);
+    mpCubeGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
+    mpCubeGraphicsState->setProgram(mpCubeProgram);
+
+
+    std::filesystem::path path;
+
+    //TODO: FIX THE STATIC LINKING
+   // mpCubeScene->setEnvMap(EnvMap::createFromFile("D:/BRDF_FACLOR/Falcor/Falcor/Source/Samples/BRDF_Simulator/20060807_wells6_hd.hdr"));
+    //mpCubeScene->setEnvMap(EnvMap::create(Texture::createCube(400, 300, ResourceFormat::R32Uint)));
+
+    auto pTex = Texture::create2D(100, 100, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
+    pTex->setName("Enviroment Map");
+    mpCubeScene->setEnvMap(EnvMap::create(pTex));
+
+}
+
+void BRDF_Simulator::setEnvMapShaderVars() {
+
+    const auto& pEnvMap = mpCubeScene->getEnvMap();
+    mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
+    if (pEnvMap) {
+        mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(pEnvMap->getEnvMap());
+            //setUav(pEnvMap->getEnvMap()->getUAV(0));
+        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
+    //    pEnvMap->setShaderData(mpCubeProgramVars["PerFrameCB"]["gEnvMap"]);
+    }
+
+    rmcv::mat4 world = rmcv::translate(mpScene->getCamera()->getPosition());
+
+    mpCubeProgramVars["PerFrameCB"]["gWorld"] = world;
+    mpCubeProgramVars["PerFrameCB"]["gScale"] = 1.f;
+    mpCubeProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
+    mpCubeProgramVars["PerFrameCB"]["gProjMat"] = mpCubeScene->getCamera()->getProjMatrix();
+
+}
+
+void BRDF_Simulator::renderSurface() {
+
+    CpuTimer timer;
+    timer.update();
+
+    mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
+    SceneBuilder::Node N;
+    Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
+    for (int row = 0; row < planSize[0]; row++) {
+        for (int col = 0; col < planSize[1]; col++) {
+            N.transform[0][3] = float(col);
+            N.transform[2][3] = float(row);
+            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(N), mSceneBuilder->addTriangleMesh(TriangleMesh::createQuad(float2(1.f)), Material));
+        }
+    }
+
+    mpScene = mSceneBuilder->getScene();
+
     {
         Program::Desc desc;
         desc.addShaderModules(mpScene->getShaderModules());
-        desc.addShaderLibrary("Samples/BRDF_Simulator/BRDF_Simulator.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
+        desc.addShaderLibrary("Samples/BRDF_Simulator/BRDF_Simulator.3d.hlsl").vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
         desc.addTypeConformances(mpScene->getTypeConformances());
 
         mpProgram = GraphicsProgram::create(desc, mpScene->getSceneDefines());
@@ -33,30 +105,8 @@ void BRDF_Simulator::addShaderLib() {
     mpGraphicsState->setProgram(mpProgram);
 
     setCamController();
-
-}
-
-
-
-void BRDF_Simulator::renderSurface() {
-
-        CpuTimer timer;
-        timer.update();
-
-        mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
-        SceneBuilder::Node N;
-        Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
-        for (int row = 0; row < planSize[0]; row++) {
-            for (int col = 0; col < planSize[1]; col++) {
-                N.transform[0][3] = float(col);
-                N.transform[2][3] = float(row);
-                mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(N), mSceneBuilder->addTriangleMesh(TriangleMesh::createQuad(float2(1.f)), Material));
-            }
-        }
-        mpScene = mSceneBuilder->getScene();
-        addShaderLib();
-        timer.update();
-        setModelString(timer.delta());
+    timer.update();
+    setModelString(timer.delta());
 }
 
 
@@ -65,12 +115,13 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
     Gui::Window w(pGui, "BRDF Simulator Demo", { 400, 300 }, { 0, 100 });
 
     {
-        auto gridSettings = w.group("Plan Settings");
-        gridSettings.var("Plan Size", planSizeTemp, 10);
-        if (gridSettings.button("Update Plan")) {
+        auto gridSettings = w.group("Surface Settings");
+        gridSettings.var("Surface Size", planSizeTemp, 10);
+        if (gridSettings.button("Update Surface")) {
             planSize = planSizeTemp;
             renderSurface();
         }
+        gridSettings.var("Roughness", roughness, 1,10);
     }
 
 
@@ -102,13 +153,11 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
     if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
 
     if (w.checkbox("Orthographic View", mOrthoCam)) { resetCamera(); }
-
-    //if (mpScene) mpScene->renderUI(w);
 }
 
 void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 {
-
+    
     mpGraphicsState = GraphicsState::create();
     // Create rasterizer state
     RasterizerState::Desc wireframeDesc;
@@ -130,15 +179,22 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     mpLinearSampler = Sampler::create(samplerDesc);
 
     resetCamera();
+    setEnvMapPipeline();
     renderSurface();
 }
 
+
+
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
+
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpGraphicsState->setFbo(pTargetFbo);
-
+    mpCubeGraphicsState->setFbo(pTargetFbo);
+    
+    setEnvMapShaderVars();
+   
     if (mpScene)
     {
         mpScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
@@ -148,17 +204,40 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
         {
             mpGraphicsState->setDepthStencilState(mpNoDepthDS);
             mpProgramVars["PerFrameCB"]["gConstColor"] = true;
-
+            mpProgramVars["PerFrameCB"]["roughness"] = roughness;
+            const auto& pEnvMap = mpCubeScene->getEnvMap();
+            if (pEnvMap) {
+                mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
+                //setUav(pEnvMap->getEnvMap()->getUAV(0));
+                mpProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
+                
+            }
             mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), mpWireframeRS, mpWireframeRS);
+            mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
+            
         }
         else
         {
             mpGraphicsState->setDepthStencilState(mpDepthTestDS);
             mpProgramVars["PerFrameCB"]["gConstColor"] = false;
+            mpProgramVars["PerFrameCB"]["roughness"] = roughness;
+            const auto& pEnvMap = mpCubeScene->getEnvMap();
+            if (pEnvMap) {
+                mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
+                //setUav(pEnvMap->getEnvMap()->getUAV(0));
+                mpProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
 
+            }
+
+            
             mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), mCullMode);
+            mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
+            
+
+            
         }
     }
+
 
     if (mOrthoCam) {
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(-4.0f * mpScene->getCamera()->getAspectRatio(), 4.0f * mpScene->getCamera()->getAspectRatio(), -4.0f , 4.0f, mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));

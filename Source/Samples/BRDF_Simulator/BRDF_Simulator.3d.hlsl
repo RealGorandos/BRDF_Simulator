@@ -1,12 +1,20 @@
 import Scene.Raster;
 import Rendering.Lights.LightHelpers;
 import Utils.Sampling.TinyUniformSampleGenerator;
-  
+import Utils.Math.MathHelpers;
 #define PI 3.14159265358979323846264338327950288
+
+//uniform EnvMap gEnvMap : register(t7);
+
 cbuffer PerFrameCB : register(b0)
 {
     bool gConstColor;
+    RWTexture2D<float> tex2D_uav;
+    SamplerState  envSampler;
+    uniform int roughness;
 };
+
+
 // A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
 uint hash(uint x) {
     x += (x << 10u);
@@ -42,42 +50,48 @@ float floatConstruct(uint m) {
 
 
 // Pseudo-random value in half-open range [0:1].
-//float random(float x) { return floatConstruct(hash(asuint(x))); }
+float random(float x) { return floatConstruct(hash(asuint(x))); }
 float random(float2  v) { return floatConstruct(hash(asuint(v))); }
 //float random(float3  v) { return floatConstruct(hash(asuint(v))); }
 //float random(float4  v) { return floatConstruct(hash(asuint(v))); }
 
-VSOut vsMain(VSIn vIn)
+VSOut vsMain(VSIn vIn, out float2 fragCoord  : TEXCOORD0)
 {
+    vIn.pos.y = random(vIn.pos.xz) * roughness;
     VSOut resVS = defaultVS(vIn);
-    //Generating random seeds based on each vertex xy and yz position
-    float u = random(resVS.posW.xy);
-    float v = random(resVS.posW.yz);
-
-    //Generating a random vector 
-    float x = sqrt(1. - u * u) * cos(2. * PI * v);
-    float y = u;
-    float z = sqrt(1 - u * u) * sin(2. * PI * v);
-    float3 sphereRandomPoint = float3(x, y, z);
-
-
-
-    //Generating the transform matrix for the generated normal
-    float3 v_ = normalize(cross(resVS.posW, resVS.normalW)); // e.g: (1 ,0 ,0)
-    float3 u_ = normalize(cross(v_, resVS.normalW)); // e.g: (0 ,0 ,1)
-    float3x3 M = float3x3(v_, resVS.normalW, u_); // e.g: [(1 ,0 ,0) , (0 ,1 ,0) , (0 ,0 ,1)]
-    float3x3 M_ = transpose(M);
-
-    //Transforming the normal
-    float3 finalNormal = mul(M_ , sphereRandomPoint);
-    resVS.normalW = finalNormal;//finalNormal;
-
-
     return resVS;
 }
 
+[maxvertexcount(3)]
+void gsMain(triangle VSOut input[3], inout TriangleStream<VSOut> output) {
+    float3 v1 = input[1].posW - input[0].posW;
+    float3 v2 = input[2].posW - input[0].posW;
+    float3 normal = normalize(cross(v1, v2));
+    // Output vertices with their corresponding normal
+    for (int i = 0; i < 3; i++)
+    {
+        VSOut o = input[i];
+        o.normalW = normal;
+        output.Append(o);
+    }
+}
 
-float4 psMain(VSOut vsOut, uint triangleIndex : SV_PrimitiveID) : SV_TARGET
+
+float4 psMain(VSOut vsOut) : SV_TARGET
 {
+    if (gConstColor)
+    {
+        return float4(0, 1, 0, 1);
+    }
+    else {
+        uint twidth;
+        uint theight;
+        tex2D_uav.GetDimensions(twidth, theight);
+
+        float2 res = world_to_latlong_map(vsOut.normalW);
+        tex2D_uav[uint2(res.x * twidth, res.y * theight)] = 255.f;
+
         return float4(vsOut.normalW, 1.f);
+    }
+
 }

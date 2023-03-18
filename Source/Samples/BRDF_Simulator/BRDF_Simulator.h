@@ -27,26 +27,14 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
-
 using namespace Falcor;
 
 class BRDF_Simulator : public IRenderer
 {
 public:
 
-    enum class TriangleType : uint32_t
-    {
-        None,
-        Quadrilateral,   ///< Quadrilateral Shape
-        Dummy,  ///< Dummy Triangle
-        Disk,   ///< Cull back-facing primitives
-        Cube,
-        Sphere,
-    };
-
     struct BRDF_Object {
         Falcor::float3 position;
-        BRDF_Simulator::TriangleType shapeType;
         std::string materialName;
         Falcor::ShadingModel shadingModel;
     };
@@ -64,39 +52,56 @@ private:
     void resetCamera();
     void setModelString(double loadTime);
     void setCamController();
-    void updateGrid();
-    void addShaderLib();
-  /*  void removeOutGridObj();
-    bool isExist();*/
+    void setEnvMapPipeline();
+    void setEnvMapShaderVars();
 
     bool mUseTriLinearFiltering = true;
     Sampler::SharedPtr mpPointSampler = nullptr;
     Sampler::SharedPtr mpLinearSampler = nullptr;
+
+    //Main scene PIPELINE
+    Scene::SharedPtr mpScene;
     GraphicsProgram::SharedPtr mpProgram = nullptr;
     GraphicsVars::SharedPtr mpProgramVars = nullptr;
     GraphicsState::SharedPtr mpGraphicsState = nullptr;
 
-    bool mDrawWireframe = false;
+    //CubeBox scene PIPELINE
+    Scene::SharedPtr mpCubeScene;
+    GraphicsProgram::SharedPtr mpCubeProgram = nullptr;
+    GraphicsVars::SharedPtr mpCubeProgramVars = nullptr;
+    GraphicsState::SharedPtr mpCubeGraphicsState = nullptr;
+    RasterizerState::SharedPtr mpRsState = nullptr;
+    RasterizerState::CullMode mCubeCullMode = RasterizerState::CullMode::None;
+    Fbo::SharedPtr mpFbo;
+    
     bool mUseOriginalTangents = false;
     bool mDontMergeMaterials = false;
-    bool mIsGeometry = false;
-    bool mOrthoCam = false;
-    bool mTogglePers = false;
+
+    
+   
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
 
-    Scene::SharedPtr mpScene;
+    
+    
+    
     SceneBuilder::SharedPtr mSceneBuilder ;
+
+    //WIREFRAME VARIABLEs
     RasterizerState::SharedPtr mpWireframeRS = nullptr;
     RasterizerState::CullMode mCullMode = RasterizerState::CullMode::Back;
+    bool mDrawWireframe = false;
 
     DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 
-    std::vector<BRDF_Object> brdf_Objects;
-    Falcor::int2 planSizeTemp = Falcor::int2(10);
-    Falcor::int2 planSize = Falcor::int2(10);
+    Falcor::int2 planSizeTemp = Falcor::int2(100);
+    Falcor::int2 planSize = Falcor::int2(100);
+    int roughness = 1;
     Falcor::float3 shapePosition = Falcor::float3(0);
+
+    //Orthographic Camera Data
     Falcor::rmcv::mat4 storeProjMat = Falcor::rmcv::mat4(1.f);
-    BRDF_Simulator::TriangleType mTriangleType = BRDF_Simulator::TriangleType::None;
+    bool mOrthoCam = false;
+
     std::string mModelString;
 };
