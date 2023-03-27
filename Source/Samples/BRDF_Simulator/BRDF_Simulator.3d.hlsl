@@ -2,16 +2,20 @@ import Scene.Raster;
 import Rendering.Lights.LightHelpers;
 import Utils.Sampling.TinyUniformSampleGenerator;
 import Utils.Math.MathHelpers;
+
 #define PI 3.14159265358979323846264338327950288
 
 //uniform EnvMap gEnvMap : register(t7);
-
+RWStructuredBuffer<int> counter : register(u0);
 cbuffer PerFrameCB : register(b0)
 {
+    bool simulate;
     bool gConstColor;
-    RWTexture2D<float> tex2D_uav;
+    RWTexture2D<uint> tex2D_uav;
     SamplerState  envSampler;
     uniform int roughness;
+    uniform int samples;
+    uniform float totalPixels;
 };
 
 
@@ -77,6 +81,8 @@ void gsMain(triangle VSOut input[3], inout TriangleStream<VSOut> output) {
 }
 
 
+
+
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
     if (gConstColor)
@@ -87,11 +93,17 @@ float4 psMain(VSOut vsOut) : SV_TARGET
         uint twidth;
         uint theight;
         tex2D_uav.GetDimensions(twidth, theight);
-
+        //Sphere coord equation
         float2 res = world_to_latlong_map(vsOut.normalW);
-        tex2D_uav[uint2(res.x * twidth, res.y * theight)] = 255.f;
 
-        return float4(vsOut.normalW, 1.f);
+
+        for (uint i = 0; i < samples; i++) {
+            if (simulate) {
+                InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
+            }
+        }
+
+        return float4(normalize(vsOut.normalW), 1.f);
     }
 
 }

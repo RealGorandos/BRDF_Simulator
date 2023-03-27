@@ -27,6 +27,7 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
+
 using namespace Falcor;
 
 class BRDF_Simulator : public IRenderer
@@ -58,7 +59,7 @@ private:
     bool mUseTriLinearFiltering = true;
     Sampler::SharedPtr mpPointSampler = nullptr;
     Sampler::SharedPtr mpLinearSampler = nullptr;
-
+    Sampler::SharedPtr mpCubePointSampler = nullptr;
     //Main scene PIPELINE
     Scene::SharedPtr mpScene;
     GraphicsProgram::SharedPtr mpProgram = nullptr;
@@ -73,6 +74,8 @@ private:
     RasterizerState::SharedPtr mpRsState = nullptr;
     RasterizerState::CullMode mCubeCullMode = RasterizerState::CullMode::None;
     Fbo::SharedPtr mpFbo;
+    Texture::SharedPtr pTex;
+    Sampler::SharedPtr mpSampler;
     
     bool mUseOriginalTangents = false;
     bool mDontMergeMaterials = false;
@@ -94,14 +97,22 @@ private:
     DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 
-    Falcor::int2 planSizeTemp = Falcor::int2(100);
-    Falcor::int2 planSize = Falcor::int2(100);
+    Falcor::int2 planSizeTemp = Falcor::int2(50);
+    Falcor::int2 planSize = Falcor::int2(50);
     int roughness = 1;
+    int sampleNum = 3;
     Falcor::float3 shapePosition = Falcor::float3(0);
 
+    float  orthoLeft;
+    float  orthoRight;
+    float  orthoTop;
+    float  orthoBottom;
+    float  pixelsNum;
     //Orthographic Camera Data
     Falcor::rmcv::mat4 storeProjMat = Falcor::rmcv::mat4(1.f);
     bool mOrthoCam = false;
 
     std::string mModelString;
+    bool startSimulation = false;
+    bool clearTexture = false;
 };

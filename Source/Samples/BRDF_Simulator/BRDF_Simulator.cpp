@@ -41,16 +41,16 @@ void BRDF_Simulator::setEnvMapPipeline() {
     mpCubeGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
     mpCubeGraphicsState->setProgram(mpCubeProgram);
 
-
-    std::filesystem::path path;
-
-    //TODO: FIX THE STATIC LINKING
-   // mpCubeScene->setEnvMap(EnvMap::createFromFile("D:/BRDF_FACLOR/Falcor/Falcor/Source/Samples/BRDF_Simulator/20060807_wells6_hd.hdr"));
-    //mpCubeScene->setEnvMap(EnvMap::create(Texture::createCube(400, 300, ResourceFormat::R32Uint)));
+    Sampler::Desc samplerDesc;
+    samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+    mpCubePointSampler = Sampler::create(samplerDesc);
+   // std::filesystem::path path;
 
     auto pTex = Texture::create2D(100, 100, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
     pTex->setName("Enviroment Map");
+    
     mpCubeScene->setEnvMap(EnvMap::create(pTex));
+    mpCubeScene->getMaterialSystem()->setDefaultTextureSampler(mpCubePointSampler);
 
 }
 
@@ -60,9 +60,10 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(pEnvMap->getEnvMap());
+        mpCubeProgramVars["PerFrameCB"]["gSamples"] = sampleNum;
             //setUav(pEnvMap->getEnvMap()->getUAV(0));
         mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
-    //    pEnvMap->setShaderData(mpCubeProgramVars["PerFrameCB"]["gEnvMap"]);
+        //pEnvMap->setShaderData(mpCubeProgramVars["PerFrameCB"]["gEnvMap"]);
     }
 
     rmcv::mat4 world = rmcv::translate(mpScene->getCamera()->getPosition());
@@ -132,18 +133,11 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
         loadGroup.checkbox("Don't Merge Materials", mDontMergeMaterials);
         loadGroup.tooltip("Don't merge materials that have the same properties. Use this option to preserve the original material names.");
     }
-
+    w.var("Samples", sampleNum, 3);
     w.separator();
-    w.checkbox("Wireframe", mDrawWireframe);
 
-    if (mDrawWireframe == false)
-    {
-        Gui::DropdownList cullList;
-        cullList.push_back({ (uint32_t)RasterizerState::CullMode::None, "No Culling" });
-        cullList.push_back({ (uint32_t)RasterizerState::CullMode::Back, "Backface Culling" });
-        cullList.push_back({ (uint32_t)RasterizerState::CullMode::Front, "Frontface Culling" });
-        w.dropdown("Cull Mode", cullList, (uint32_t&)mCullMode);
-    }
+
+
 
     Gui::DropdownList cameraDropdown;
     cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::FirstPerson, "First-Person" });
@@ -153,6 +147,9 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
     if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
 
     if (w.checkbox("Orthographic View", mOrthoCam)) { resetCamera(); }
+    w.separator();
+    startSimulation = w.button("Start Simulation");
+    clearTexture = w.button("Clear Texture");
 }
 
 void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
@@ -175,12 +172,20 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     Sampler::Desc samplerDesc;
     samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
     mpPointSampler = Sampler::create(samplerDesc);
-    samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
+    samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
     mpLinearSampler = Sampler::create(samplerDesc);
 
     resetCamera();
     setEnvMapPipeline();
     renderSurface();
+
+    mpScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
+    //FIX
+    orthoLeft = -40.0f * mpScene->getCamera()->getAspectRatio();
+    orthoRight = 40.0f * mpScene->getCamera()->getAspectRatio();
+    orthoTop = -40.0f;
+    orthoBottom = 40.0f;
+    pixelsNum = (orthoRight - orthoLeft) * (orthoBottom - orthoTop);
 }
 
 
@@ -191,8 +196,13 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpGraphicsState->setFbo(pTargetFbo);
+    if (clearTexture) {
+        clearTexture = !clearTexture;
+        setEnvMapPipeline();
+    }
+
     mpCubeGraphicsState->setFbo(pTargetFbo);
-    
+
     setEnvMapShaderVars();
    
     if (mpScene)
@@ -200,26 +210,12 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
         mpScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
 
         // Set render state
-        if (mDrawWireframe)
-        {
-            mpGraphicsState->setDepthStencilState(mpNoDepthDS);
-            mpProgramVars["PerFrameCB"]["gConstColor"] = true;
-            mpProgramVars["PerFrameCB"]["roughness"] = roughness;
-            const auto& pEnvMap = mpCubeScene->getEnvMap();
-            if (pEnvMap) {
-                mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
-                //setUav(pEnvMap->getEnvMap()->getUAV(0));
-                mpProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
-                
-            }
-            mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), mpWireframeRS, mpWireframeRS);
-            mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
-            
-        }
-        else
+
+        
         {
             mpGraphicsState->setDepthStencilState(mpDepthTestDS);
             mpProgramVars["PerFrameCB"]["gConstColor"] = false;
+            mpProgramVars["PerFrameCB"]["simulate"] = this->startSimulation;
             mpProgramVars["PerFrameCB"]["roughness"] = roughness;
             const auto& pEnvMap = mpCubeScene->getEnvMap();
             if (pEnvMap) {
@@ -227,26 +223,29 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
                 //setUav(pEnvMap->getEnvMap()->getUAV(0));
                 mpProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
 
+                mpProgramVars["PerFrameCB"]["samples"] = sampleNum;
+                std::cout <<  sampleNum << std::endl;
             }
 
             
-            mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), mCullMode);
+            mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::None);
             mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
-            
-
             
         }
     }
 
 
     if (mOrthoCam) {
-        mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(-4.0f * mpScene->getCamera()->getAspectRatio(), 4.0f * mpScene->getCamera()->getAspectRatio(), -4.0f , 4.0f, mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
+        mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(-40.0f * mpScene->getCamera()->getAspectRatio(), 40.0f * mpScene->getCamera()->getAspectRatio(), -40.0f , 40.0f, mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
     }
     else {
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::perspective(Falcor::focalLengthToFovY(mpScene->getCamera()->getFocalLength(), mpScene->getCamera()->getFrameHeight()), mpScene->getCamera()->getFrameWidth()/ mpScene->getCamera()->getFrameHeight(), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
 
     }
     TextRenderer::render(pRenderContext, mModelString, pTargetFbo, float2(10, 30));
+
+    // change the simulation boolean to false.
+    this->startSimulation = false;
 }
 
 bool BRDF_Simulator::onKeyEvent(const KeyboardEvent& keyEvent)

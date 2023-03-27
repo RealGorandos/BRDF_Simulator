@@ -2,32 +2,53 @@ import Scene.Scene;
 import Utils.Math.MathHelpers;
 
 
+Texture2D gTexture;
+SamplerState gSampler;
+
+struct VS_OUTPUT
+{
+    float4 posH : SV_POSITION;
+    float3 dir : NORMAL;
+    float2 texCoord : TEXCOORD;
+};
+
 
 cbuffer PerFrameCB
 {
     float4x4 gWorld;
     float4x4 gViewMat;
+    uniform uint totalPixels;
     float4x4 gProjMat;
     float gScale;
-    //EnvMap gEnvMap;
+    uniform uint  gSamples;
+   // EnvMap gEnvMap;
     Texture2D tex2D_uav;
-    SamplerState  envSampler;
+    SamplerState envSampler;
+
 };
 
-void vsMain(float4 posL : POSITION, out float3 dir : NORMAL, out float4 posH : SV_POSITION)
+VS_OUTPUT vsMain(float4 posL : POSITION, float2 texCoord: TEXCOORD)
 {
-    dir = posL.xyz;
+    VS_OUTPUT output;
+    output.dir = posL.xyz;
     float4 viewPos = mul(gViewMat, mul(gWorld, posL));
-    posH = mul(gProjMat, viewPos);
-    posH.xy *= gScale;
-    posH.z = posH.w;
+    output.posH = mul(gProjMat, viewPos);
+    output.posH.xy *= gScale;
+    output.posH.z = output.posH.w;
+    output.texCoord = texCoord;
+    return output;
 }
 
-float4 psMain(float3 dir : NORMAL, float4 posH : SV_POSITION) : SV_TARGET
+float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
 {
+    float2 uv = world_to_latlong_map(vsOut.dir);
+    float4 color = tex2D_uav.SampleLevel(envSampler, uv, 0.f);
+    uint twidth;
+    uint theight;
+    tex2D_uav.GetDimensions(twidth, theight);
+    uint3 res = uint3(asuint(color.r), asuint(color.g), asuint(color.b));
+    uint samples = twidth * theight * gSamples;
+  //float3 color = gEnvMap.eval(vsOut.dir);
 
-    float2 res = world_to_latlong_map(dir);
-    float3 color = tex2D_uav.SampleLevel(envSampler, res, 0.f).rgb * 1.f;
-
-     return float4(color, 1.f);
-}
+    return float4(float3(res) / samples, 1.f);
+    }
