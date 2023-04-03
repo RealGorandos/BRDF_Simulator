@@ -84,7 +84,7 @@ void gsMain(triangle VSOut input[3], inout TriangleStream<VSOut> output) {
 }
 
 
-
+/*Moller-Trumbore Method*/
 float3 rayTrinagleIntersect(float3 V0, float3 V1, float3 V2, float3 O, float3 D) {
     float3 E1 = V1 - V0;
     float3 E2 = V2 - V0;
@@ -134,7 +134,7 @@ void ray_march(in float3 rayOrigin, in float3 rayDir)
  
             if ((tuv1[0] >= 0 ) && (tuv1[1] >= 0 ) && (tuv1[2] >= 0 ) && (1 - tuv1[1] - tuv1[2] >= 0)) {
                 
-                bouncedRays -= 1;
+                //bouncedRays -= 1;
                 cur_bounce_start_pos += current_rayDir * tuv1[0];
                 current_position = cur_bounce_start_pos;
                 //ASK ABOUT THE CORRECT DIRECTION OF  THE NORMALS
@@ -144,7 +144,7 @@ void ray_march(in float3 rayOrigin, in float3 rayDir)
             }
             else if ((tuv2[0] >= 0) && (tuv2[1] >= 0) && (tuv2[2] >= 0 ) && ( 1 - tuv2[1] - tuv2[2] >= 0)) {
                 
-                bouncedRays -= 1;
+                //bouncedRays -= 1;
                 cur_bounce_start_pos += current_rayDir * tuv2[0];
                 current_position = cur_bounce_start_pos;
                 //ASK ABOUT THE CORRECT DIRECTION OF  THE NORMALS
@@ -165,7 +165,16 @@ void ray_march(in float3 rayOrigin, in float3 rayDir)
     }
 
 }
+uint base_hash(uint2 p) {
+     p = 1103515245U * ((p >> 1U) ^ (p.yx));
+     uint h32 = 1103515245U * ((p.x) ^ (p.y >> 3U));
+     return h32 ^ (h32 >> 16);
+    
+}
 
+float2 PseudoRandom2D(in int i) {
+     return frac(float2(i * int2(12664745, 9560333)) / exp2(24.0));
+}
 
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
@@ -174,14 +183,25 @@ float4 psMain(VSOut vsOut) : SV_TARGET
         return float4(0, 1, 0, 1);
     }
     else {
+        /*Setting Up Monte-Carlo method*/
+        //Generating Random Seed
+        int seed = int(base_hash(asint(vsOut.posW.xz)));
+        /*Sphere space transformation matrix*/
+        float3 v_ = normalize(cross(vsOut.posW, vsOut.normalW)); // e.g: (1 ,0 ,0)
+        float3 u_ = normalize(cross(v_, vsOut.normalW)); // e.g: (0 ,0 ,1)
+        float3x3 M = float3x3(v_, vsOut.normalW, u_); // e.g: [(1 ,0 ,0) , (0 ,1 ,0) , (0 ,0 ,1)]
+        float3x3 M_ = transpose(M);
+        /*Env map diemensions*/
         uint twidth;
         uint theight;
         tex2D_uav.GetDimensions(twidth, theight);
-
-        float3 dirAfterManupilation = float3(0.f, 0.f, 0.f);
             if (simulate) {
-                for (uint i = 0; i < samples; i++) {
-                    ray_march(vsOut.posW, vsOut.normalW);
+                /*Generating normals based on the seed*/
+                for (int i = seed; i < samples + seed; i++) {
+                    float2 hl = PseudoRandom2D(i);
+                    float ourV_sqrt = sqrt(1. - hl.y * hl.y);
+                    float3 L = normalize(mul(M_, float3(ourV_sqrt * cos(2. * PI * hl.x), hl.y, ourV_sqrt * sin(2. * PI * hl.x))));
+                    ray_march(vsOut.posW, L);
                 }
             }
             else if (normalSim) {
@@ -190,7 +210,7 @@ float4 psMain(VSOut vsOut) : SV_TARGET
                     InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
                 }
             }
-        return float4(vsOut.normalW, 1.f);
+            return float4(vsOut.normalW, 1.f);
     }
 
 }
