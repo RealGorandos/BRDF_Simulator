@@ -99,8 +99,10 @@ private:
 
     Falcor::int2 planSizeTemp = Falcor::int2(50);
     Falcor::int2 planSize = Falcor::int2(50);
-    int roughness = 1;
+    
+    int roughness = 0;
     int sampleNum = 3;
+    int bounces = 0;
     Falcor::float3 shapePosition = Falcor::float3(0);
 
     float  orthoLeft;
@@ -114,5 +116,6 @@ private:
 
     std::string mModelString;
     bool startSimulation = false;
+    bool normalSim = false;
     bool clearTexture = false;
 };

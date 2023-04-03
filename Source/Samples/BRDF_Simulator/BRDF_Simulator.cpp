@@ -90,6 +90,8 @@ void BRDF_Simulator::renderSurface() {
             mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(N), mSceneBuilder->addTriangleMesh(TriangleMesh::createQuad(float2(1.f)), Material));
         }
     }
+    std::cout << "------------------------x: " + std::to_string(planSize[1]) << std::endl;
+    std::cout << "------------------------y: " + std::to_string(planSize[0]) << std::endl;
 
     mpScene = mSceneBuilder->getScene();
 
@@ -122,7 +124,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
             planSize = planSizeTemp;
             renderSurface();
         }
-        gridSettings.var("Roughness", roughness, 1,10);
+        gridSettings.var("Roughness", roughness, 0,15);
     }
 
 
@@ -134,6 +136,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
         loadGroup.tooltip("Don't merge materials that have the same properties. Use this option to preserve the original material names.");
     }
     w.var("Samples", sampleNum, 3);
+    w.var("Bounces", bounces,0, 100);
     w.separator();
 
 
@@ -149,6 +152,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
     if (w.checkbox("Orthographic View", mOrthoCam)) { resetCamera(); }
     w.separator();
     startSimulation = w.button("Start Simulation");
+    normalSim = w.button("Normal Simulation");
     clearTexture = w.button("Clear Texture");
 }
 
@@ -216,7 +220,10 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
             mpGraphicsState->setDepthStencilState(mpDepthTestDS);
             mpProgramVars["PerFrameCB"]["gConstColor"] = false;
             mpProgramVars["PerFrameCB"]["simulate"] = this->startSimulation;
+            mpProgramVars["PerFrameCB"]["normalSim"] = normalSim;
             mpProgramVars["PerFrameCB"]["roughness"] = roughness;
+            mpProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
+            mpProgramVars["PerFrameCB"]["bounces"] = bounces;
             const auto& pEnvMap = mpCubeScene->getEnvMap();
             if (pEnvMap) {
                 mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
@@ -224,7 +231,7 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
                 mpProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
 
                 mpProgramVars["PerFrameCB"]["samples"] = sampleNum;
-                std::cout <<  sampleNum << std::endl;
+                //std::cout <<  sampleNum << std::endl;
             }
 
             
@@ -246,6 +253,7 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
     // change the simulation boolean to false.
     this->startSimulation = false;
+    normalSim = false;
 }
 
 bool BRDF_Simulator::onKeyEvent(const KeyboardEvent& keyEvent)
