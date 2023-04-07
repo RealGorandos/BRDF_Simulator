@@ -14,11 +14,15 @@ cbuffer PerFrameCB : register(b0)
     bool gConstColor;
     RWTexture2D<uint> tex2D_uav;
     SamplerState  envSampler;
-    uniform int roughness;
+    uniform float roughness;
     uniform int samples;
     uniform int bounces;
     uniform int2 surfaceSize;
     uniform float totalPixels;
+
+    uniform int orthCamWidth;
+    uniform int orthCamHeight;
+    uniform int nearPlanePos;
 };
 
 
@@ -64,7 +68,7 @@ float random(float2  v) { return floatConstruct(hash(asuint(v))); }
 
 VSOut vsMain(VSIn vIn, out float2 fragCoord  : TEXCOORD0)
 {
-    vIn.pos.y = random(vIn.pos.xz) * roughness;
+    vIn.pos.y = random(vIn.pos.xz) * (10 * roughness);
     VSOut resVS = defaultVS(vIn);
     return resVS;
 }
@@ -110,7 +114,7 @@ void ray_march(in float3 rayOrigin, in float3 rayDir)
     while (
             (current_position.x >= 0 && current_position.x < surfaceSize[1]) &&
             (current_position.z >= 0 && current_position.z < surfaceSize[0]) &&
-            (current_position.y < roughness) &&
+            (current_position.y < 10) &&
             bouncedRays >= 0
         )
     {
@@ -123,10 +127,10 @@ void ray_march(in float3 rayOrigin, in float3 rayDir)
             /*If it is a new block update the variables*/
             current_block = temp_current_block;
             /*The vertices of the upper triangle*/
-            float3 a = float3(current_block.x, random(float2(current_block.x, current_block.z)) * roughness, current_block.z);
-            float3 b = float3(current_block.x + 1, random(float2(current_block.x + 1, current_block.z)) * roughness, current_block.z);
-            float3 c = float3(current_block.x, random(float2(current_block.x, current_block.z + 1)) * roughness, current_block.z + 1);
-            float3 d = float3(current_block.x + 1, random(float2(current_block.x + 1, current_block.z + 1)) * roughness, current_block.z + 1);
+            float3 a = float3(current_block.x, random(float2(current_block.x, current_block.z)) * (10 * roughness), current_block.z);
+            float3 b = float3(current_block.x + 1, random(float2(current_block.x + 1, current_block.z)) * (10 * roughness), current_block.z);
+            float3 c = float3(current_block.x, random(float2(current_block.x, current_block.z + 1)) * (10 * roughness), current_block.z + 1);
+            float3 d = float3(current_block.x + 1, random(float2(current_block.x + 1, current_block.z + 1)) * (10 * roughness), current_block.z + 1);
 
             float3 tuv1 = rayTrinagleIntersect(b, a, c, cur_bounce_start_pos, current_rayDir);
             float3 tuv2 = rayTrinagleIntersect(b, c, d, cur_bounce_start_pos, current_rayDir);
@@ -160,7 +164,7 @@ void ray_march(in float3 rayOrigin, in float3 rayDir)
         uint theight;
         tex2D_uav.GetDimensions(twidth, theight);
         float2 res = world_to_latlong_map(current_rayDir);
-        InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
+       // InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
         //return float3(current_rayDir);
     }
 
@@ -196,14 +200,14 @@ float4 psMain(VSOut vsOut) : SV_TARGET
         uint theight;
         tex2D_uav.GetDimensions(twidth, theight);
             if (simulate) {
-                /*Generating normals based on the seed*/
-                for (int i = seed; i < samples + seed; i++) {
-                    float2 hl = PseudoRandom2D(i);
-                    float ourV_sqrt = sqrt(1. - hl.y * hl.y);
-                    float3 L = normalize(mul(M_, float3(ourV_sqrt * cos(2. * PI * hl.x), hl.y, ourV_sqrt * sin(2. * PI * hl.x))));
-                    ray_march(vsOut.posW, L);
-                }
-            }
+                        /*Generating normals based on the seed*/
+                        for (int i = seed; i < samples + seed; i++) {
+                            float2 hl = PseudoRandom2D(i);
+                            float ourV_sqrt = sqrt(1. - hl.y * hl.y);
+                            float3 L = normalize(mul(M_, float3(ourV_sqrt * cos(2. * PI * hl.x), hl.y, ourV_sqrt * sin(2. * PI * hl.x))));
+                            ray_march(vsOut.posW, L);
+                        }
+                    }
             else if (normalSim) {
                 float2 res = world_to_latlong_map(vsOut.normalW);
                 for (uint i = 0; i < samples; i++) {

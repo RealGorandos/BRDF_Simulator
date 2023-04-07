@@ -55,8 +55,8 @@ private:
     void setCamController();
     void setEnvMapPipeline();
     void setEnvMapShaderVars();
-
-    bool mUseTriLinearFiltering = true;
+    void loadOrthoQuad();
+    void setOrthoCubeVars();
     Sampler::SharedPtr mpPointSampler = nullptr;
     Sampler::SharedPtr mpLinearSampler = nullptr;
     Sampler::SharedPtr mpCubePointSampler = nullptr;
@@ -76,7 +76,27 @@ private:
     Fbo::SharedPtr mpFbo;
     Texture::SharedPtr pTex;
     Sampler::SharedPtr mpSampler;
-    
+
+
+    //Orthographic Camera simulation PIPELINE
+    bool mUseTriLinearFiltering = true;
+    Sampler::SharedPtr mpOrthoCubePointSampler = nullptr;
+    Sampler::SharedPtr mpOrthoCubeLinearSampler = nullptr;
+
+    GraphicsProgram::SharedPtr mpOrthoCubeProgram = nullptr;
+    GraphicsVars::SharedPtr mpOrthoCubeProgramVars = nullptr;
+    GraphicsState::SharedPtr mpOrthoCubeGraphicsState = nullptr;
+
+    bool mOrthoCubeDrawWireframe = false;
+
+    SceneBuilder::SharedPtr mpOrthoCubeSceneBuilder;
+    Scene::SharedPtr mpOrthoCubeScene;
+    RasterizerState::SharedPtr mpOrthoCubeWireframeRS = nullptr;
+
+    DepthStencilState::SharedPtr mpOrthoCubeNoDepthDS = nullptr;
+    DepthStencilState::SharedPtr mpOrthoCubeDepthTestDS = nullptr;
+    float cameraSize = 1.f;
+    //////
     bool mUseOriginalTangents = false;
     bool mDontMergeMaterials = false;
 
@@ -90,7 +110,7 @@ private:
     SceneBuilder::SharedPtr mSceneBuilder ;
 
     //WIREFRAME VARIABLEs
-    RasterizerState::SharedPtr mpWireframeRS = nullptr;
+
     RasterizerState::CullMode mCullMode = RasterizerState::CullMode::Back;
     bool mDrawWireframe = false;
 
@@ -99,8 +119,9 @@ private:
 
     Falcor::int2 planSizeTemp = Falcor::int2(50);
     Falcor::int2 planSize = Falcor::int2(50);
-    
-    int roughness = 0;
+    int orthCamWidth = 80;
+    int orthCamHeight = 40;
+    float roughness = 0.f;
     int sampleNum = 3;
     int bounces = 0;
     Falcor::float3 shapePosition = Falcor::float3(0);
@@ -118,4 +139,6 @@ private:
     bool startSimulation = false;
     bool normalSim = false;
     bool clearTexture = false;
+    float3 rotateQuad = float3(0.f);
+    float3 orthoCamPostion = float3(10.f);
 };
