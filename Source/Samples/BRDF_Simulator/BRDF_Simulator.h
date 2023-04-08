@@ -140,5 +140,5 @@ private:
     bool normalSim = false;
     bool clearTexture = false;
     float3 rotateQuad = float3(0.f);
-    float3 orthoCamPostion = float3(10.f);
+    float3 orthoCamPostion = float3(0.f);
 };

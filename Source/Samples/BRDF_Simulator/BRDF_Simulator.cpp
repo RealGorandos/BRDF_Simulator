@@ -205,7 +205,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 
     {
         auto gridSettings = w.group("Surface Settings");
-        gridSettings.var("Surface Size", planSizeTemp, 10);
+        gridSettings.var("Surface Size", planSizeTemp, 1);
         if (gridSettings.button("Update Surface")) {
             planSize = planSizeTemp;
             renderSurface();
@@ -226,7 +226,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
         auto orthQuadSettings = w.group("Orthographic Camera Settings");
         orthQuadSettings.var("OrthoQuad Rotate", rotateQuad, 0.f, 90.f);
         orthQuadSettings.var("OrthoQuad Position", orthoCamPostion, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), 0.1f);
-        orthQuadSettings.var("OrthoQuad Size", cameraSize, 1.f, 10.f);
+        orthQuadSettings.var("OrthoQuad Size", cameraSize, 0.f, 2.f);
     }
     w.var("Samples", sampleNum, 3);
     w.var("Bounces", bounces,0, 100);
@@ -354,6 +354,8 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
             mpProgramVars["PerFrameCB"]["nearPlanePos"] = int(mpScene->getCamera()->getNearPlane());
 
             mpOrthoCubeProgramVars["PerFrameCB"]["simulate"] = this->startSimulation;
+            mpOrthoCubeProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
+            mpOrthoCubeProgramVars["PerFrameCB"]["roughness"] = roughness;
             const auto& pEnvMap = mpCubeScene->getEnvMap();
             if (pEnvMap) {
                 mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
