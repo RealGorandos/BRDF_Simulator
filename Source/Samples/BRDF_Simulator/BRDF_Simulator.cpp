@@ -229,7 +229,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
         orthQuadSettings.var("OrthoQuad Size", cameraSize, 0.f, 2.f);
     }
     w.var("Samples", sampleNum, 3);
-    w.var("Bounces", bounces,0, 100);
+    w.var("Bounces", bounces,1, 4);
 
     w.separator();
 
@@ -356,6 +356,7 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
             mpOrthoCubeProgramVars["PerFrameCB"]["simulate"] = this->startSimulation;
             mpOrthoCubeProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
             mpOrthoCubeProgramVars["PerFrameCB"]["roughness"] = roughness;
+            mpProgramVars["PerFrameCB"]["bounces"] = bounces;
             const auto& pEnvMap = mpCubeScene->getEnvMap();
             if (pEnvMap) {
                 mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));

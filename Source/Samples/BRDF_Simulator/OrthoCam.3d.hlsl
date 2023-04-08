@@ -34,6 +34,7 @@ cbuffer PerFrameCB
     bool simulate;
     uniform int2 surfaceSize;
     uniform float roughness;
+    uniform int bounces;
 };
 
 float3x3 rotate(float alpha, float beta, float gamma) {
@@ -157,16 +158,17 @@ bool rayTriangleIntersect(
     float invDet = 1.0 / det;
 
     float3 tvec = orig - v0;
-    u = mul(dot(tvec, pvec),invDet);
+    u = dot(tvec, pvec) * invDet;
     if (u < 0.f || u > 1.0) return false;
 
     float3 qvec = cross(tvec, v0v1);
-    v = mul(dot(dir, qvec),invDet);
+    v = dot(dir, qvec) * invDet;
     if (v < 0.f || u + v > 1.0) return false;
 
-    t = mul(dot(v0v2, qvec) , invDet);
+    t = dot(v0v2, qvec) * invDet;
 
 
+    
     return true;
 
 }
@@ -211,15 +213,127 @@ bool findQuad(inout int row, inout int col, inout float3 pos, inout float3 dir,
             float3 v3 = float3(float(col), random(float2(col, row + 1)) * (10 * roughness), float(row + 1));
             float3 v4 = float3(float(col + 1), random(float2(col + 1, row + 1)) * (10 * roughness), float(row + 1));
             if (rayTriangleIntersect(pos, dir, v1, v2, v3, t, u ,v)) {
+                pos += dir * t;
+                float3 v1v2 = v2 - v1;
+                float3 v1v3 = v3 - v1;
+                dir = normalize(cross(v1v2, v1v3));
                 return true;
             }
             else if (rayTriangleIntersect(pos, dir, v2, v3, v4, t ,u ,v)) {
+                pos += dir * t;
+                float3 v2v3 = v3 - v2;
+                float3 v2v4 = v4 - v2;
+                dir = normalize(cross(v2v3, v2v4));
                 return true;
             }
         }
     }
     return false;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+void ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int bouncesNum)
+{
+    float3 exp_point = rayOrigin;
+    float3 exp_block = floor(exp_point);
+    float3 current_block = exp_block;
+    float rand_height = (10 * roughness);
+    float3 v1 = float3(0.f);
+    float3 v2 = float3(0.f);
+    float3 v3 = float3(0.f);
+    float3 v4 = float3(0.f);
+    float t = 0.f;
+    float u = 0.f;
+    float v = 0.f;
+
+    while (
+        (exp_point.x >= 0.f && exp_point.x < surfaceSize[1]) &&
+        (exp_point.z >= 0.f && exp_point.z < surfaceSize[0]) &&
+        (exp_point.y >= 0.f && exp_point.y < 10.f) &&
+        bouncesNum >= 0
+        )
+    {
+        exp_point += rayDir * 0.1f; //Moving ray position
+        exp_block = floor(exp_point); //Storing the current block
+        /*Checking if we moved to a new block*/
+        if (current_block.x != exp_block.x &&
+            current_block.z != exp_block.z)
+        {
+            /*If it is a new block update the variables*/
+            current_block = exp_block;
+            /*The vertices of the upper triangle*/
+            v1 = float3(current_block.x, random(float2(current_block.x, current_block.z)) * rand_height, current_block.z);
+            v2 = float3(current_block.x + 1, random(float2(current_block.x + 1, current_block.z)) * rand_height, current_block.z);
+            v3 = float3(current_block.x, random(float2(current_block.x, current_block.z + 1)) * rand_height, current_block.z + 1);
+            v4 = float3(current_block.x + 1, random(float2(current_block.x + 1, current_block.z + 1)) * rand_height, current_block.z + 1);
+
+            t = 0.f;
+            u = 0.f;
+            v = 0.f;
+            /*Checking which side of the quad the ray is in*/
+            while (current_block.x == exp_block.x &&
+                current_block.z == exp_block.z && bouncesNum >= 0) {
+
+
+                if (rayTriangleIntersect(rayOrigin, rayDir, v1, v2, v3, t, u, v)) {
+
+                    //bouncedRays -= 1;
+                    rayOrigin += rayDir * t;
+                    exp_point = rayOrigin;
+                    //ASK ABOUT THE CORRECT DIRECTION OF  THE NORMALS
+                    float3 v1v2 = v2 - v1;
+                    float3 v1v3 = v3 - v1;
+                    rayDir = normalize(cross(v1v2, v1v3));
+                    bouncesNum--;
+                }
+                else if (rayTriangleIntersect(rayOrigin, rayDir, v2, v3, v4, t, u, v)) {
+
+                    //bouncedRays -= 1;
+                    //bouncedRays -= 1;
+                    rayOrigin += rayDir * t;
+                    exp_point = rayOrigin;
+                    //ASK ABOUT THE CORRECT DIRECTION OF  THE NORMALS
+                    float3 v2v3 = v3 - v2;
+                    float3 v2v4 = v4 - v2;
+                    rayDir = normalize(cross(v2v3, v2v4));
+                    bouncesNum--;
+                }
+                else {
+                    exp_point += rayDir * 0.1f;
+                }
+                exp_block = floor(exp_point);
+            }
+        }
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
 {
@@ -238,15 +352,20 @@ float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
        int row = 0;
        int col = 0;
        bool quad = findQuad(row, col, pos, dir, t, u, v, v1, v2, v3, v4);
+       int bouncesNum = bounces;
 
        if (quad) {
-           uint twidth;
-           uint theight;
-           tex2D_uav.GetDimensions(twidth, theight);
-           float2 res = world_to_latlong_map(dir);
-           for (uint i = 0; i < 10; i++) {
-               InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
+           ray_march(pos, dir, bouncesNum);
+           if (bouncesNum >= 0) {
+               uint twidth;
+               uint theight;
+               tex2D_uav.GetDimensions(twidth, theight);
+               float2 res = world_to_latlong_map(dir);
+               for (uint i = 0; i < 10; i++) {
+                   InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
+               }
            }
+
 
        }
 
