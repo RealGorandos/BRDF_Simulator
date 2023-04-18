@@ -40,6 +40,12 @@ public:
         Falcor::ShadingModel shadingModel;
     };
 
+    enum class BRDF_Type
+    {
+        BRDF_Simulation,
+        Cook_Torrance,
+        GGX
+    };
 
     void onLoad(RenderContext* pRenderContext) override;
     void onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
@@ -49,6 +55,8 @@ public:
     void onGuiRender(Gui* pGui) override;
 
 private:
+    void loadModel(ResourceFormat fboFormat);
+    void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat);
     void renderSurface();
     void resetCamera();
     void setModelString(double loadTime);
@@ -57,6 +65,7 @@ private:
     void setEnvMapShaderVars();
     void loadOrthoQuad();
     void setOrthoCubeVars();
+    void setSceneVars();
     Sampler::SharedPtr mpPointSampler = nullptr;
     Sampler::SharedPtr mpLinearSampler = nullptr;
     Sampler::SharedPtr mpCubePointSampler = nullptr;
@@ -80,22 +89,22 @@ private:
 
     //Orthographic Camera simulation PIPELINE
     bool mUseTriLinearFiltering = true;
-    Sampler::SharedPtr mpOrthoCubePointSampler = nullptr;
-    Sampler::SharedPtr mpOrthoCubeLinearSampler = nullptr;
+    Sampler::SharedPtr mpDebuggingQuadPointSampler = nullptr;
+    Sampler::SharedPtr mpDebuggingQuadLinearSampler = nullptr;
 
-    GraphicsProgram::SharedPtr mpOrthoCubeProgram = nullptr;
-    GraphicsVars::SharedPtr mpOrthoCubeProgramVars = nullptr;
-    GraphicsState::SharedPtr mpOrthoCubeGraphicsState = nullptr;
+    GraphicsProgram::SharedPtr mpDebuggingQuadProgram = nullptr;
+    GraphicsVars::SharedPtr mpDebuggingQuadProgramVars = nullptr;
+    GraphicsState::SharedPtr mpDebuggingQuadGraphicsState = nullptr;
 
-    bool mOrthoCubeDrawWireframe = false;
+    bool mpDebuggingQuadDrawWireframe = false;
 
-    SceneBuilder::SharedPtr mpOrthoCubeSceneBuilder;
-    Scene::SharedPtr mpOrthoCubeScene;
-    RasterizerState::SharedPtr mpOrthoCubeWireframeRS = nullptr;
+    SceneBuilder::SharedPtr mpDebuggingQuadSceneBuilder;
+    Scene::SharedPtr mpDebuggingQuadScene;
+    RasterizerState::SharedPtr mpDebuggingQuadWireframeRS = nullptr;
 
-    DepthStencilState::SharedPtr mpOrthoCubeNoDepthDS = nullptr;
-    DepthStencilState::SharedPtr mpOrthoCubeDepthTestDS = nullptr;
-    float cameraSize = 1.f;
+    DepthStencilState::SharedPtr mpDebuggingQuadNoDepthDS = nullptr;
+    DepthStencilState::SharedPtr mpDebuggingQuadDepthTestDS = nullptr;
+    float cameraSize = 0.110000f;
     //////
     bool mUseOriginalTangents = false;
     bool mDontMergeMaterials = false;
@@ -105,7 +114,7 @@ private:
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
 
     
-    
+    BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::BRDF_Simulation;
     
     SceneBuilder::SharedPtr mSceneBuilder ;
 
@@ -117,10 +126,10 @@ private:
     DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 
-    Falcor::int2 planSizeTemp = Falcor::int2(50);
-    Falcor::int2 planSize = Falcor::int2(50);
-    int orthCamWidth = 80;
-    int orthCamHeight = 40;
+    Falcor::int2 planSizeTemp = Falcor::int2(1);
+    Falcor::int2 planSize = Falcor::int2(1);
+    float orthCamWidth = 2;
+    float orthCamHeight = 1;
     float roughness = 0.f;
     int sampleNum = 3;
     int bounces = 0;
@@ -136,9 +145,15 @@ private:
     bool mOrthoCam = false;
 
     std::string mModelString;
-    bool startSimulation = false;
-    bool normalSim = false;
+    bool showDebuggingQuad = false;
+
+    bool debuggingQuad = false;
+
+    bool BRDF_Simulation = false;
     bool clearTexture = false;
-    float3 rotateQuad = float3(0.f);
-    float3 orthoCamPostion = float3(0.f);
+    float3 rotateQuad = float3(3.15f, 0.f, 0.f);
+    float3 orthoCamPostion = float3(0.f ,-23.500000f, 0.f);
+
+    bool mMicrofacetes = true;
+    bool mObjectSimulation = false;
 };
