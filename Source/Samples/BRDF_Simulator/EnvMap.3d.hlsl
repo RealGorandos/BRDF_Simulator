@@ -42,11 +42,7 @@ VS_OUTPUT vsMain(float4 posL : POSITION, float2 texCoord: TEXCOORD)
 
 float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
 {
-    if (gObjSimulation) {
 
-        return float4(0.f, 0.8f, 0.f, 0.4f);
-    }
-    else {
         float2 uv = world_to_latlong_map(vsOut.dir);
         float4 color = tex2D_uav.SampleLevel(envSampler, uv, 0.f);
         uint twidth;
@@ -57,6 +53,6 @@ float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
         //float3 color = gEnvMap.eval(vsOut.dir);
 
           return float4(float3(res) / samples, 1.f);
-    }
+    
 
  }

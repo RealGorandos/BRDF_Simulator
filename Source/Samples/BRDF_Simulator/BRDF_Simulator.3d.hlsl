@@ -3,7 +3,7 @@ import Rendering.Lights.LightHelpers;
 import Utils.Sampling.TinyUniformSampleGenerator;
 import Utils.Math.MathHelpers;
 #include "Simulation.lib.hlsl"
-
+#include "Cook_Torrence.brdf.hlsl"
 
 //uniform EnvMap gEnvMap : register(t7);
 RWStructuredBuffer<int> counter : register(u0);
@@ -24,6 +24,7 @@ cbuffer PerFrameCB : register(b0)
     uniform float orthCamWidth;
     uniform float orthCamHeight;
     uniform int nearPlanePos;
+    uniform float3 c_pos;
 };
 
 
@@ -71,33 +72,30 @@ float3 JitteredSample(float3 pos, int nSample)
 }
 
 void updateTexture(float3 posIn, float3 dirIn) {
-
-    int bias = int(base_hash(asint(posIn.xz)));
     uint twidth;
     uint theight;
     tex2D_uav.GetDimensions(twidth, theight);
-    for (int i = bias; i < samples + bias; i++) {
-        int hitCount = bounces;
-        float3 pos = JitteredSample(posIn, i);
-        float3 dir = dirIn;
-        ray_march(pos, dir, hitCount);
-        if (hitCount > 0) {
-      
-            float2 res = world_to_latlong_map(normalize(dir));
-            InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
-    
+   
+    int hitCount = bounces;
+    float3 pos = posIn;// JitteredSample(posIn, i);
+    float3 dir = dirIn;
+    ray_march(pos, dir, hitCount);
+    if (hitCount > 0) {
+    float2 res = world_to_latlong_map(normalize(dir));
+    InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
 
-        }
     }
 }
 
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
     if (LoadedObj) {
-        return float4(0.f, 0.f, 0.f, 1.f);
+        return float4(vsOut.normalW, 1.f);
     }
     if (BRDF_Simulation) {
-        updateTexture(vsOut.posW, vsOut.normalW);
+        float3 norm = normalize(vsOut.posW - c_pos) ;
+        float3 preRef = normalize(reflect(norm, vsOut.normalW));
+        updateTexture(vsOut.posW, preRef);
        
         }
     return float4(vsOut.normalW, 1.f);

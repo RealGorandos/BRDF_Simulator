@@ -1,6 +1,7 @@
 #include "BRDF_Simulator.h"
 #include "Utils/UI/TextRenderer.h"
 #include "Utils/Math/FalcorMath.h"
+#include <random>
 
 
 void BRDF_Simulator::setModelString(double loadTime)
@@ -133,7 +134,7 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(pEnvMap->getEnvMap());
-        mpCubeProgramVars["PerFrameCB"]["gSamples"] = sampleNum;
+        mpCubeProgramVars["PerFrameCB"]["gSamples"] = jitterInternal;
             //setUav(pEnvMap->getEnvMap()->getUAV(0));
         mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
         //pEnvMap->setShaderData(mpCubeProgramVars["PerFrameCB"]["gEnvMap"]);
@@ -184,21 +185,22 @@ void BRDF_Simulator::setSceneVars() {
     mpProgramVars["PerFrameCB"]["nearPlanePos"] = int(mpScene->getCamera()->getNearPlane());
     mpProgramVars["PerFrameCB"]["bounces"] = bounces;
     mpProgramVars["PerFrameCB"]["LoadedObj"] = mObjectSimulation;
+    mpProgramVars["PerFrameCB"]["c_pos"] = mpScene->getCamera()->getPosition();
     const auto& pEnvMap = mpCubeScene->getEnvMap();
     if (pEnvMap) {
         mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
         //setUav(pEnvMap->getEnvMap()->getUAV(0));
         mpProgramVars["PerFrameCB"]["envSampler"].setSampler(pEnvMap->getEnvSampler());
 
-        mpProgramVars["PerFrameCB"]["samples"] = sampleNum;
+        mpProgramVars["PerFrameCB"]["samples"] = jitterInternal;
 
     }
 }
 
 void BRDF_Simulator::renderSurface() {
 
-    CpuTimer timer;
-    timer.update();
+   // CpuTimer timer;
+   // timer.update();
 
     mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
     SceneBuilder::Node N;
@@ -228,8 +230,8 @@ void BRDF_Simulator::renderSurface() {
     mpGraphicsState->setProgram(mpProgram);
 
     setCamController();
-    timer.update();
-    setModelString(timer.delta());
+    //timer.update();
+   // setModelString(timer.delta());
     mpScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
 }
 
@@ -267,9 +269,12 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
         }
 
         w.separator();
-
-        w.var("Samples", sampleNum, 3);
+        
+    
+        w.var("Jitter", jitterNum, 0);
         w.var("Bounces", bounces, 5, 100);
+        
+
 
         w.separator();
 
@@ -301,7 +306,12 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 
 
 
-        BRDF_Simulation = w.button("Start BRDF Simulation");
+        if (w.button("Draw To Texture")) {
+            BRDF_Simulation = true;
+            jitterInternal = jitterNum;
+            bouncesInternal = bounces;
+            camCurrPos = mpScene->getCamera()->getPosition();
+        }
         clearTexture = w.button("Clear Texture");
 
         w.separator();
@@ -312,10 +322,7 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 
     if (mObjectSimulation) {
 
-        w.var("Samples", sampleNum, 3);
-        w.var("Bounces", bounces, 5, 80);
 
-        w.separator();
 
         Gui::DropdownList cameraDropdown;
         cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::FirstPerson, "First-Person" });
@@ -324,22 +331,6 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 
         if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
 
-
-        if (w.checkbox("Orthographic View", mOrthoCam)) {
-
-            resetCamera();
-        }
-        if (mOrthoCam) {
-            auto orthCameraSettings = w.group("Orthographic Camera Settings");
-            float tempWidth = orthCamWidth;
-            float tempHeight = orthCamHeight;
-            orthCameraSettings.var("Width", orthCamWidth, 0.f);
-            orthCameraSettings.var("Height", orthCamHeight, 0.f);
-            if (tempWidth != orthCamWidth || tempHeight != orthCamHeight) {
-                tempWidth = orthCamWidth;
-                tempHeight = orthCamHeight;
-            }
-        }
         w.separator();
         Gui::DropdownList brdfDropdown;
         brdfDropdown.push_back({ (uint32_t)BRDF_Simulator::BRDF_Type::BRDF_Simulation, "BRDF Simulation" });
@@ -349,7 +340,6 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
         {
         }
         w.separator();
-
     }
 
     
@@ -358,9 +348,8 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 
     
     if (!mObjectSimulation) {
-        if (w.button("Load Scene"))
+        if (w.button("View Model"))
         {
-            clearTexture = true;
             mObjectSimulation = true;
             mMicrofacetes = false;
             loadModel(gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
@@ -368,9 +357,8 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
     }
 
     if (!mMicrofacetes) {
-        if (w.button("Load Microfacet Surface"))
+        if (w.button("View Surface"))
         {
-            clearTexture = true;
             mMicrofacetes = true;
             mObjectSimulation = false;
             renderSurface();
@@ -380,8 +368,8 @@ void BRDF_Simulator::onGuiRender(Gui* pGui)
 }
 void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat)
 {
-    CpuTimer timer;
-    timer.update();
+    //CpuTimer timer;
+    //timer.update();
 
     SceneBuilder::Flags flags = SceneBuilder::Flags::None;
     if (mUseOriginalTangents) flags |= SceneBuilder::Flags::UseOriginalTangentSpace;
@@ -390,7 +378,7 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
 
     try
     {
-        mpScene = SceneBuilder::create(path, flags)->getScene();
+        mpModelScene = SceneBuilder::create(path, flags)->getScene();
     }
     catch (const std::exception& e)
     {
@@ -399,19 +387,19 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
     }
 
     Program::Desc desc;
-    desc.addShaderModules(mpScene->getShaderModules());
-    desc.addShaderLibrary("Samples/BRDF_Simulator/BRDF_Simulator.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
-    desc.addTypeConformances(mpScene->getTypeConformances());
+    desc.addShaderModules(mpModelScene->getShaderModules());
+    desc.addShaderLibrary("Samples/BRDF_Simulator/Model.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
+    desc.addTypeConformances(mpModelScene->getTypeConformances());
 
-    mpProgram = GraphicsProgram::create(desc, mpScene->getSceneDefines());
-    mpProgramVars = GraphicsVars::create(mpProgram->getReflector());
-    mpGraphicsState->setProgram(mpProgram);
+    mpModelProgram = GraphicsProgram::create(desc, mpModelScene->getSceneDefines());
+    mpModelProgramVars = GraphicsVars::create(mpModelProgram->getReflector());
+    mpModelGraphicsState->setProgram(mpModelProgram);
 
-    mpScene->getMaterialSystem()->setDefaultTextureSampler(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
+    mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
     setCamController();
 
-    timer.update();
-    setModelString(timer.delta());
+    //timer.update();
+    //setModelString(timer.delta());
 }
 void BRDF_Simulator::loadModel(ResourceFormat fboFormat)
 {
@@ -427,6 +415,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     
     mpGraphicsState = GraphicsState::create();
     mpDebuggingQuadGraphicsState = GraphicsState::create();
+    mpModelGraphicsState = GraphicsState::create();
     // Depth test
     DepthStencilState::Desc dsDesc;
     dsDesc.setDepthEnabled(false);
@@ -456,7 +445,12 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 
 }
 
-
+float get_random()
+{
+    static std::default_random_engine e;
+    static std::uniform_real_distribution<> dis(-0.013, 0.013); // rage 0 - 1
+    return dis(e);
+}
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
@@ -464,24 +458,25 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpDebuggingQuadGraphicsState->setFbo(pTargetFbo);
-
+    mpModelGraphicsState->setFbo(pTargetFbo);
     mpGraphicsState->setFbo(pTargetFbo);
-
-    if (clearTexture) {
-        clearTexture = !clearTexture;
-        setEnvMapPipeline();
-    }
-
     mpCubeGraphicsState->setFbo(pTargetFbo);
 
-    
-    if (mpScene)
+    if (mpModelScene && !mMicrofacetes) {
+        mpModelScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
+        mpModelGraphicsState->setDepthStencilState(mpDepthTestDS);
+        mpModelScene->rasterize(pRenderContext, mpModelGraphicsState.get(), mpModelProgramVars.get(), RasterizerState::CullMode::None);
+
+    }
+    else if (mpScene && !mObjectSimulation)
     {
+        if (clearTexture) {
+            clearTexture = !clearTexture;
+            setEnvMapPipeline();
+        }
         mpScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
 
-        // Set render state
-
-        
+        // Set render state     
         {
             mpDebuggingQuadGraphicsState->setDepthStencilState(mpDebuggingQuadDepthTestDS);
             mpGraphicsState->setDepthStencilState(mpDepthTestDS);
@@ -494,7 +489,8 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
             }
             
             if (mOrthoCam) {
-                mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::Back);
+                    mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::Back);
+
             }
             else {
                 mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::None);
@@ -506,9 +502,6 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
         if (mOrthoCam) {
             mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(float(-orthCamWidth), float(orthCamWidth), float(-orthCamHeight), float(orthCamHeight), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
-            std::cout << "Postion of orthoCam: (" + std::to_string(mpScene->getCamera()->getPosition()[0]) + "," + std::to_string(mpScene->getCamera()->getPosition()[1]) + ", " + std::to_string(mpScene->getCamera()->getPosition()[2]) + ")" << std::endl;
-            std::cout << "Left, right, top, buttom : (" + std::to_string(mpScene->getCamera()->getFarPlane()) + ")" << std::endl;
-
         }
         else {
             mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::perspective(Falcor::focalLengthToFovY(mpScene->getCamera()->getFocalLength(), mpScene->getCamera()->getFrameHeight()), mpScene->getCamera()->getFrameWidth() / mpScene->getCamera()->getFrameHeight(), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
@@ -519,29 +512,61 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
 
     TextRenderer::render(pRenderContext, mModelString, pTargetFbo, float2(10, 30));
-
+    if (jitterInternal >  1 && BRDF_Simulation) {
+        mpScene->getCamera()->setPosition(float3(camCurrPos.x + get_random(), camCurrPos.y + get_random(), camCurrPos.z));
+        mpScene->getCamera()->setTarget(mpScene->getSceneBounds().center() + float3(0, 0, 0));
+        mpScene->getCamera()->setUpVector(float3(0, 1, 0));
+       // mpScene->getCamera()->setPosition(float3(0, 0 , 1));
+        std::cout << jitterInternal << std::endl;
+        jitterInternal--;
+    }
     // change the simulation boolean to false.
-    this->debuggingQuad = false;
-    this->BRDF_Simulation = false;
+    if (jitterInternal <= 1) {
+    //    std::cout << jitterInternal << std::endl;
+        this->debuggingQuad = false;
+        this->BRDF_Simulation = false;
+    }
+
 }
 
 bool BRDF_Simulator::onKeyEvent(const KeyboardEvent& keyEvent)
 {
-    if (mOrthoCam && (keyEvent.key == Input::Key::W || keyEvent.key == Input::Key::S)) return false;
-    if (mpScene && mpScene->onKeyEvent(keyEvent)) return true;
 
-    if ((keyEvent.type == KeyboardEvent::Type::KeyPressed) && (keyEvent.key == Input::Key::R))
-    {
-        resetCamera();
-        return true;
+    if (mpModelScene && !mMicrofacetes) {
+        if (mpModelScene && mpModelScene->onKeyEvent(keyEvent)) return true;
+        if ((keyEvent.type == KeyboardEvent::Type::KeyPressed) && (keyEvent.key == Input::Key::R))
+        {
+            resetCamera();
+            return true;
+        }
     }
+    else if (mpScene && !mObjectSimulation) {
+        if (mOrthoCam && (keyEvent.key == Input::Key::W || keyEvent.key == Input::Key::S)) return false;
+        if (mpScene && mpScene->onKeyEvent(keyEvent)) return true;
+
+        if ((keyEvent.type == KeyboardEvent::Type::KeyPressed) && (keyEvent.key == Input::Key::R))
+        {
+            resetCamera();
+            return true;
+        }
+
+
+    }
+
     return false;
 }
 
 bool BRDF_Simulator::onMouseEvent(const MouseEvent& mouseEvent)
 {
-    if (mOrthoCam && mouseEvent.type == MouseEvent::Type::Wheel) return false;
-    return mpScene ? mpScene->onMouseEvent(mouseEvent) : false;
+    //if (mOrthoCam && mouseEvent.type == MouseEvent::Type::Wheel) return false;
+    if (mpModelScene && !mMicrofacetes) {
+        mpModelScene->onMouseEvent(mouseEvent);
+    }
+    else if (mpScene && !mObjectSimulation) {
+        if (mOrthoCam && mouseEvent.type == MouseEvent::Type::Wheel) return false;
+        return mpScene->onMouseEvent(mouseEvent);
+    }
+    return false;
 }
 
 void BRDF_Simulator::onResizeSwapChain(uint32_t width, uint32_t height)
@@ -552,8 +577,9 @@ void BRDF_Simulator::onResizeSwapChain(uint32_t width, uint32_t height)
 
 void BRDF_Simulator::setCamController()
 {
-    if (mpScene) {mpScene->setCameraController(mCameraType);}
-    if (mpDebuggingQuadScene) { mpDebuggingQuadScene->setCameraController(mCameraType); }
+    if(mpModelScene  && !mMicrofacetes) { mpModelScene->setCameraController(mCameraType); }
+    else if (mpScene && !mObjectSimulation) {mpScene->setCameraController(mCameraType);}
+    //if (mpDebuggingQuadScene) { mpDebuggingQuadScene->setCameraController(mCameraType); }
 
 }
 
@@ -561,7 +587,11 @@ void BRDF_Simulator::setCamController()
 
 void BRDF_Simulator::resetCamera()
 {
-    if (mpScene)
+    if (mpModelScene &&!mMicrofacetes) {
+        mpModelScene->resetCamera(true);
+        setCamController();
+    }
+    else if (mpScene && !mObjectSimulation)
     {
         mpScene->resetCamera(true);
         setCamController();

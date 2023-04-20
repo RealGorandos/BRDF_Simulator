@@ -74,7 +74,11 @@ private:
     GraphicsProgram::SharedPtr mpProgram = nullptr;
     GraphicsVars::SharedPtr mpProgramVars = nullptr;
     GraphicsState::SharedPtr mpGraphicsState = nullptr;
-
+    //Model PIPELINE
+    Scene::SharedPtr mpModelScene;
+    GraphicsProgram::SharedPtr mpModelProgram = nullptr;
+    GraphicsVars::SharedPtr mpModelProgramVars = nullptr;
+    GraphicsState::SharedPtr mpModelGraphicsState = nullptr;
     //CubeBox scene PIPELINE
     Scene::SharedPtr mpCubeScene;
     GraphicsProgram::SharedPtr mpCubeProgram = nullptr;
@@ -131,8 +135,11 @@ private:
     float orthCamWidth = 2;
     float orthCamHeight = 1;
     float roughness = 0.f;
-    int sampleNum = 3;
+    int jitterNum = 3;
     int bounces = 0;
+    int jitterInternal = 0;
+    int bouncesInternal = 0;
+    float3 camCurrPos = float3(0.f);
     Falcor::float3 shapePosition = Falcor::float3(0);
 
     float  orthoLeft;
