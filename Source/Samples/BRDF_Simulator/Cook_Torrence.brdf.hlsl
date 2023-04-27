@@ -35,9 +35,9 @@
 //    //vec3 diffuse = vec3(kd)*1./PI; 
 //    return specular;
 //}
-//
-//
+
+
 //float3 render(float3 L, float3 N, float3 V, float2 textureCord, float3x3 worldToLocal) {
-//    float3 col = texture(skybox, L).rgb;
+//    float3 col = float3(1.f, 1.f, 1.f);//texture(skybox, L).rgb;
 //    return col * cook_torrance_origin_brdf(L, V, N);
 //}

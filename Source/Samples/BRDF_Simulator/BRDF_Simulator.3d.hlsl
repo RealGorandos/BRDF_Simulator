@@ -25,15 +25,16 @@ cbuffer PerFrameCB : register(b0)
     uniform float orthCamHeight;
     uniform int nearPlanePos;
     uniform float3 c_pos;
+
+    uniform float4x4 gWorld;
 };
 
 
 
 VSOut vsMain(VSIn vIn, out float2 fragCoord  : TEXCOORD0)
 {
-    if (!LoadedObj) {
-        vIn.pos.y = random(vIn.pos.xz) * (3 * roughness);
-    }
+
+    vIn.pos.y = random(vIn.pos.xz) * (3 * roughness);
     VSOut resVS = defaultVS(vIn);
     return resVS;
 }
@@ -52,51 +53,36 @@ void gsMain(triangle VSOut input[3], inout TriangleStream<VSOut> output) {
 
 }
 
-float3 JitteredSample(float3 pos, int nSample)
-{
-    float3 result;
-    float invNSamples = 1.0f / (float)nSample;
-    float3 cellSize = 1.0f / (float)nSample;
-
-    // Generate random sample within the cell
-    float3 jitter = cellSize * RandomGradient3(nSample);
-    result += jitter;
 
 
-    // Offset the sample to the center of the cell
-    result.x += (float)pos.x / (float)nSample;
-    result.y += (float)pos.y / (float)nSample;
-    result.z += (float)pos.z / (float)nSample;
-
-    return result * invNSamples;
-}
-
-void updateTexture(float3 posIn, float3 dirIn) {
+void updateTexture(float3 posIn, float3 dirIn, float4x4 worldMat, float3x3 invWorldMat) {
     uint twidth;
     uint theight;
     tex2D_uav.GetDimensions(twidth, theight);
    
     int hitCount = bounces;
-    float3 pos = posIn;// JitteredSample(posIn, i);
+    float3 pos = posIn;
     float3 dir = dirIn;
-    ray_march(pos, dir, hitCount);
-    if (hitCount > 0) {
+    //TODO: DEBUG BOUNCES
+    //ray_march(pos, dir, hitCount, worldMat, invWorldMat);
+    //if (hitCount >= 0) {
     float2 res = world_to_latlong_map(normalize(dir));
     InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
 
-    }
+    //}
+   // return float4(dir, 1.f);
 }
 
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
-    if (LoadedObj) {
-        return float4(vsOut.normalW, 1.f);
-    }
     if (BRDF_Simulation) {
-        float3 norm = normalize(vsOut.posW - c_pos) ;
-        float3 preRef = normalize(reflect(norm, vsOut.normalW));
-        updateTexture(vsOut.posW, preRef);
-       
+        float4x4 worldMat = gScene.getWorldMatrix(vsOut.instanceID);
+        float3x3 invWorldMat = gScene.getInverseTransposeWorldMatrix(vsOut.instanceID);
+        float3 c_dir = normalize(c_pos);
+        float3 preRef = normalize(reflect(c_dir, vsOut.normalW));
+        
+        updateTexture(vsOut.posW, preRef, worldMat, invWorldMat);
+        //return float4(vsOut.normalW, 1.f);
         }
     return float4(vsOut.normalW, 1.f);
 }

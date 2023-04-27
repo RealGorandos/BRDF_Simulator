@@ -1,17 +1,36 @@
 #define PI 3.14159265358979323846264338327950288
-#define kEpsilon 0.000001
+#define kEpsilon 0.00000000001
 
 /*________Helper Methods for finding Quads and Lines_______________________*/
 
-void fillVertices(const int x, const int y, inout float3 v1, inout float3 v2, inout float3 v3, inout float3 v4) {
-    v1 = float3(float(x), float(random(float2(x, y)) * (3 * roughness)), float(y));
+void fillVertices(const int x, const int y, inout float3 v1, inout float3 v2, inout float3 v3, inout float3 v4, float4x4 worldMat, float3x3 invWorldMat) {
 
-    v2 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y)) * (3 * roughness)), float(y));
+    //float3x3 gWorldInv = (invWorldMat);
 
-    v3 = float3(float(x), float(random(float2(x, y + 1.f)) * (3 * roughness)), float(y) + 1.f);
+    //float3 posWv1 = mul(gWorldInv, float3(float(x), 0.f, float(y))).xyz;
+    //posWv1.y = random(posWv1.xz) * (3 * roughness);
+    //v1 = mul(worldMat, float4(posWv1, 1.f)).xyz;
 
-    v4 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y + 1.f)) * (3 * roughness)), float(y) + 1.f);
+    //float3 posWv2 = mul(gWorldInv, float3(float(x) + 1.f, 0.f, float(y))).xyz;
+    //posWv2.y = random(posWv2.xz) * (3 * roughness);
+    //v2 = mul(worldMat, float4(posWv2, 1.f)).xyz;
 
+    //float3 posWv3 = mul(gWorldInv, float3(float(x), 0.f, float(y) + 1.f)).xyz;
+    //posWv3.y = random(posWv3.xz) * (3 * roughness);
+    //v3 = mul(worldMat, float4(posWv3, 1.f)).xyz;
+
+    //float3 posWv4 = mul(gWorldInv, float3(float(x) + 1.f, 0.f, float(y) + 1.f)).xyz;
+    //posWv4.y = random(posWv4.xz) * (3 * roughness);
+    //v4 = mul(worldMat, float4(posWv4, 1.f)).xyz;
+
+
+    v1 = float3(float(x), float(random(float2(x, y)) * (float(3) * roughness)), float(y));
+
+    v2 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y)) * (float(3) * roughness)), float(y));
+
+    v3 = float3(float(x), float(random(float2(x, y + 1.f)) * (float(3) * roughness)), float(y) + 1.f);
+
+    v4 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y + 1.f)) * (float(3) * roughness)), float(y) + 1.f);
 }
 
 void findLines(const float3 pos, const float3 dir, const float3 v1, const float3 v2, const float3 v3, const float3 v4, inout float4 firstLine, inout float4 secondLine) {
@@ -58,60 +77,60 @@ void findLines(const float3 pos, const float3 dir, const float3 v1, const float3
 
 
 
-bool findQuad(inout float3 pos, inout float3 dir,
-    inout float t, inout float u, inout float v,
-    inout float3 v1, inout float3 v2, inout float3 v3, inout float3 v4)
-{
-    float4 firstLine = float4(0.f);
-    float4 secondLine = float4(0.f);
-    float t1 = 0.f;
-    float t2 = 0.f;
-    for (int row = 1; row <= surfaceSize[0]; row++) {
-        for (int col = 1; col <= surfaceSize[1]; col++) {
-
-            fillVertices(col, row, v1, v2, v3, v4);
-            //findLines(pos, dir, v1, v2, v3, v4, firstLine, secondLine);
-            //  bool quad = false;
-            //  bool intersection_1 =  rayLineIntersect(float2(pos.x, pos.z), float2(dir.x, dir.z), float2(firstLine[0], firstLine[1]), float2(firstLine[2], firstLine[3]), t1);
-            //  bool intersection_2 = false;// rayLineIntersect(float2(pos.x, pos.z), float2(dir.x, dir.z), float2(2.f, 2.f), float2(2, 3), t2);
-            //    if (intersection_1 || intersection_2) {
-
-            //    float3 v1v2 = v2 - v1;
-            //    float3 v1v3 = v3 - v1;
-            //    float3 N = normalize(cross(v1v3, v1v2));
-            //    //if (t1 < t2 && t1 != 0.f) {
-            //    //    pos += dir * (t1);
-            //    //}
-            //    // if (t2 < t1 && t2 != 0.f) {
-            //        pos += dir * (t1);
-            //    //}
-            //    
-            //    //dir = N;
-
-            //    return true;
-            //}
-            if (rayTriangleIntersect(pos, dir, v1, v2, v3, t, u, v)) {
-                pos = pos + dir * t;
-                float3 v1v2 = v2 - v1;
-                float3 v1v3 = v3 - v1;
-                float3 N = normalize(cross(v1v3, v1v2));
-                //float3 dirOut = dir - N * 2 * dot(dir, N);
-                dir = N;
-                return true;
-            }
-            if (rayTriangleIntersect(pos, dir, v4, v2, v3, t, u, v)) {
-                pos = pos + dir * t;
-                float3 v4v2 = v2 - v4;
-                float3 v4v3 = v3 - v4;
-                float3 N = normalize(cross(v4v2, v4v3));
-                //float3 dirOut = dir - N * 2 * dot(dir, N);
-                dir = N;
-                return true;
-            }
-        }
-    }
-    return false;
-}
+//bool findQuad(inout float3 pos, inout float3 dir,
+//    inout float t, inout float u, inout float v,
+//    inout float3 v1, inout float3 v2, inout float3 v3, inout float3 v4)
+//{
+//    float4 firstLine = float4(0.f);
+//    float4 secondLine = float4(0.f);
+//    float t1 = 0.f;
+//    float t2 = 0.f;
+//    for (int row = 1; row <= surfaceSize[0]; row++) {
+//        for (int col = 1; col <= surfaceSize[1]; col++) {
+//
+//            fillVertices(col, row, v1, v2, v3, v4);
+//            //findLines(pos, dir, v1, v2, v3, v4, firstLine, secondLine);
+//            //  bool quad = false;
+//            //  bool intersection_1 =  rayLineIntersect(float2(pos.x, pos.z), float2(dir.x, dir.z), float2(firstLine[0], firstLine[1]), float2(firstLine[2], firstLine[3]), t1);
+//            //  bool intersection_2 = false;// rayLineIntersect(float2(pos.x, pos.z), float2(dir.x, dir.z), float2(2.f, 2.f), float2(2, 3), t2);
+//            //    if (intersection_1 || intersection_2) {
+//
+//            //    float3 v1v2 = v2 - v1;
+//            //    float3 v1v3 = v3 - v1;
+//            //    float3 N = normalize(cross(v1v3, v1v2));
+//            //    //if (t1 < t2 && t1 != 0.f) {
+//            //    //    pos += dir * (t1);
+//            //    //}
+//            //    // if (t2 < t1 && t2 != 0.f) {
+//            //        pos += dir * (t1);
+//            //    //}
+//            //    
+//            //    //dir = N;
+//
+//            //    return true;
+//            //}
+//            if (rayTriangleIntersect(pos, dir, v1, v2, v3, t, u, v)) {
+//                pos = pos + dir * t;
+//                float3 v1v2 = v2 - v1;
+//                float3 v1v3 = v3 - v1;
+//                float3 N = normalize(cross(v1v3, v1v2));
+//                //float3 dirOut = dir - N * 2 * dot(dir, N);
+//                dir = N;
+//                return true;
+//            }
+//            if (rayTriangleIntersect(pos, dir, v4, v2, v3, t, u, v)) {
+//                pos = pos + dir * t;
+//                float3 v4v2 = v2 - v4;
+//                float3 v4v3 = v3 - v4;
+//                float3 N = normalize(cross(v4v2, v4v3));
+//                //float3 dirOut = dir - N * 2 * dot(dir, N);
+//                dir = N;
+//                return true;
+//            }
+//        }
+//    }
+//    return false;
+//}
 
 
 /*____________________Microfactes Random Height Generator functions_________________________*/
@@ -188,22 +207,22 @@ bool rayTriangleIntersect(
     float3 pvec = cross(dir, v0v2);
     float det = dot(v0v1, pvec);
     // ray and triangle are parallel if det is close to 0
-    if (( det < kEpsilon)) return false;
+    if ((det > -kEpsilon) && ( det < kEpsilon)) return false;
 
     float invDet = 1.0 / det;
 
     float3 tvec = orig - v0;
-    u = dot(tvec, pvec);// *invDet;
-    if (u < 0.f || u > det) return false;
+    u = dot(tvec, pvec) *invDet;
+    if (u < 0.f || u > 1.f) return false;
 
     float3 qvec = cross(tvec, v0v1);
-    v = dot(dir, qvec);// *invDet;
-    if (v < 0.f || u + v > det) return false;
+    v = dot(dir, qvec) *invDet;
+    if (v < 0.f || u + v > 1.f) return false;
 
-    t = dot(v0v2, qvec) * invDet;// -0.5;
-    u *= invDet;
-    v *= invDet;
-    if (t < 0.f) return false;
+    t = dot(v0v2, qvec) *invDet;
+    if (t >= 0.f) return false;
+   
+    
 
 
     return true;
@@ -232,26 +251,26 @@ bool rayLineIntersect(const float2 rayOrigin, const float2 rayDirection, const f
 /*_________________________________Ray marching function (For the simulation)___________________*/
 
 void updateNorm_1(inout float3  exp_point, inout float3  dir, float t, float3 v1, float3 v2, float3 v3 ) {
-    float3 v1v2 = v2 - v1;
-    float3 v1v3 = v3 - v1;
+    float3 v1v2 = (v1 - v2);
+    float3 v1v3 = (v1 - v3);
     float3 N = normalize(cross(v1v3, v1v2));
-    float3 dirOut = dir - N * 2 * dot(dir, N);
+  //  float3 dirOut = dir - N * 2 * dot(dir, N);
     exp_point = exp_point + dir * (t);
-    dir = normalize(reflect(-dir, N));//float3(0.f, 1.f, 0.f);// 
-    //dir = normalize(reflect(dir, N));// normalize(dirOut);//
+    //dir = float3(0.f, 1.f, 0.f);// 
+    dir = normalize(reflect(dir, N));// normalize(dirOut);//
 }
 
 void updateNorm_2(inout float3  exp_point, inout float3  dir, float t, float3 v1, float3 v2, float3 v3) {
-    float3 v1v2 = v2 - v1;
-    float3 v1v3 = v3 - v1;
-    float3 N = normalize(cross(v1v2, v1v3));
-    float3 dirOut = dir - N * 2 * dot(dir, N);
+    float3 v1v2 = v1 - v2;
+    float3 v1v3 = v1 - v3;
+    float3 N = normalize(cross(v1v3, v1v2));
+    //float3 dirOut = dir - N * 2 * dot(dir, N);
     exp_point = exp_point + dir * (t);
-    dir = normalize(reflect(dir, N)); //float3(0.f, 1.f, 0.f); // //normalize(dirOut);//normalize(reflect(dir, N));
+    dir = normalize(reflect(dir, N )); //float3(0.f, 1.f, 0.f); // //normalize(dirOut);//normalize(reflect(dir, N));
 
 }
 
-void ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount)
+void ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount, float4x4 worldMat, float3x3 invWorldMat)
 {
     float3 exp_point = rayOrigin;
     float3 dir = rayDir;
@@ -272,14 +291,17 @@ void ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount)
     float t1 = 0.f;
     float t2 = 0.f;
 
-    
+    bool upper = false;
+    bool lower = false;
+    int negativeLen = 10;
     while (
 
-        (exp_point.x >= 1.f && exp_point.x <= surfaceSize[1]) &&
-        (exp_point.z >= 1.f && exp_point.z <= surfaceSize[0]) &&
-        (exp_point.y >= 0.f && exp_point.y <= 3.f) &&
-        dir.y != 1.f &&
-        hitCount > 0
+       (exp_point.x >= 1.f && exp_point.x <= surfaceSize[1] + 1.f) &&
+       (exp_point.z >= 1.f && exp_point.z <= surfaceSize[0] + 1.f) &&
+       (exp_point.y >= -1.f && exp_point.y <=  3.f) &&
+        (dir.y != 1.f && dir.y != -1.f) &&// (dir.x != 0.f || dir.z != 0.f) &&
+        hitCount >= 0 //&& negativeLen >= 0 &&
+        //!isTriaIntersect
         )
     {
         t0 = 0.f;
@@ -290,9 +312,47 @@ void ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount)
         verticalLine = float4(0.f);
         horizontalLine = float4(0.f);
 
+        current_block = floor(exp_point);
+        fillVertices(current_block.x, current_block.z, v1, v2, v3, v4, worldMat, invWorldMat);
+        /*Ray-Triangle Intersection*/
+        bool rayTriangleIntersect_1 = rayTriangleIntersect(exp_point, dir, v1, v2, v3, t, u, v);
+        bool rayTriangleIntersect_2 = rayTriangleIntersect(exp_point, dir, v4, v3, v2, t0, u, v);
+        //if (rayTriangleIntersect_1 && rayTriangleIntersect_2) {
+        //    if (t != 0 && t0 != 0 && abs(t) < abs(t0) ) {
+        //        updateNorm_1(exp_point, dir, t, v1, v2, v3);
+        //        //dir = float3(0.f, 1.f, 0.f);
+        //        isTriaIntersect = true;
+        //        hitCount--;
+
+        //    }
+        //    else if (t != 0 && t0 != 0 && abs(t0) < abs(t)) {
+        //        //updateNorm_2(exp_point, dir, t0, v4, v2, v3);
+        //        dir = float3(0.f, 1.f, 0.f);
+        //        isTriaIntersect = true;
+        //        hitCount--;
+
+        //    }
+        //}
+        if (rayTriangleIntersect_1 ) {
+          //  if (t > 0.f) {
+                updateNorm_1(exp_point, dir, t, v1, v2, v3);
+                isTriaIntersect = true;
+                hitCount--;
+           // }
+        }
+        else if (rayTriangleIntersect_2 ) {
+           // if (t0 > 0.f) {   
+                updateNorm_2(exp_point, dir, t0, v4, v3, v2);
+                isTriaIntersect = true;
+                hitCount--;
+
+           // }
+        }
+       // dir = float3(0.f, 1.f, 0.f);
+       // hitCount--;
 
         current_block = floor(exp_point);
-        fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);
+        fillVertices(current_block.x, current_block.z, v1, v2, v3, v4, worldMat, invWorldMat);
 
         ///*Cells Shifting*/
         if (!isTriaIntersect) {
@@ -302,85 +362,46 @@ void ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount)
             if (dir.x < 0.f || dir.z < 0.f) {
                 if (intersection_1 && intersection_2) {
                     if (t1 < t2) {
-                        exp_point = exp_point + dir * (t1 + 0.1);
+                        exp_point = exp_point + dir * (t1 + 0.01);
                     }
                     else {
-                        exp_point = exp_point + dir * (t2 + 0.1);
+                        exp_point = exp_point + dir * (t2 + 0.01);
                     }
                 }
                 else if (intersection_1) {
-                    exp_point = exp_point + dir * (t1 + 0.1);
+                    exp_point = exp_point + dir * (t1 + 0.01);
                 }
                 else if (intersection_2) {
-                    exp_point = exp_point + dir * (t2 + 0.1);
+                    exp_point = exp_point + dir * (t2 + 0.01);
                 }
             }
             else {
                 if (intersection_1 && intersection_2) {
                     if (t1 < t2) {
-                        exp_point = exp_point + dir * (t1 + 0.1f);
+                        exp_point = exp_point + dir * (t1 + 0.01);
                     }
                     else {
-                        exp_point = exp_point + dir * (t2 + 0.1f);
+                        exp_point = exp_point + dir * (t2 + 0.01);
                     }
                 }
                 else if (intersection_1) {
-                    exp_point = exp_point + dir * (t1 + 0.1f);
+                    exp_point = exp_point + dir * (t1 + 0.01);
                 }
                 else if (intersection_2) {
-                    exp_point = exp_point + dir * (t2 + 0.1f);
+                    exp_point = exp_point + dir * (t2 + 0.01);
                 }
 
 
             }
 
         }
+
         isTriaIntersect = false;
-        current_block = floor(exp_point);
-        fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);
-        /*Ray-Triangle Intersection*/
-        bool rayTriangleIntersect_1 = rayTriangleIntersect(exp_point, dir, v1, v2, v3, t, u, v);
-        bool rayTriangleIntersect_2 = rayTriangleIntersect(exp_point, dir, v4, v2, v3, t0, u, v);
-        if (rayTriangleIntersect_1 && rayTriangleIntersect_2) {
-            if (t < t0) {
-                if (hitCount <= 0) {
-                    break;
-                } 
-                updateNorm_1(exp_point, dir, t, v1, v2, v3);
-                hitCount--;
-                isTriaIntersect = true;
-
-            }
-            else {
-                if (hitCount <= 0) {
-                    break;
-                }
-                updateNorm_2(exp_point, dir, t, v4, v2, v3);
-                hitCount--;
-
-                isTriaIntersect = true;
-
-            }
 
 
-        }
-        else if (rayTriangleIntersect_1) {
-            if (hitCount <= 0) {
-                break;
-            }
-            updateNorm_1(exp_point, dir, t, v1, v2, v3);
-            hitCount--;
-            isTriaIntersect = true;
-        }
-        else if (rayTriangleIntersect_2) {
-            if (hitCount <= 0) {
-                break;
-            }
-            updateNorm_2(exp_point, dir, t, v4, v2, v3);
-            hitCount--;
-            isTriaIntersect = true;
 
-        }
+ 
+       
     }
 
     rayOrigin = exp_point;

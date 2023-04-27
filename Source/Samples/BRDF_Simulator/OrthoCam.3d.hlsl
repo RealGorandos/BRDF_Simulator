@@ -78,11 +78,11 @@ VS_OUTPUT vsMain(VSIn vIn)
     VS_OUTPUT output;
     const GeometryInstanceID instanceID = { vIn.instanceID };
     float4x4 worldMat = gScene.getWorldMatrix(instanceID);
-    vIn.pos = mul(vIn.pos, rotate(rotation.x, rotation.y, rotation.z));// vIn.pos.x* cos(rotation) - vIn.pos.y * sin(rotation);
-    vIn.pos = mul(float4(vIn.pos, 1.f), scale(cameraSize)).xyz;
+  //  vIn.pos = mul(vIn.pos, rotate(rotation.x, rotation.y, rotation.z));// vIn.pos.x* cos(rotation) - vIn.pos.y * sin(rotation);
+   // vIn.pos = mul(float4(vIn.pos, 1.f), scale(cameraSize)).xyz;
     //float new_y = vIn.pos.y * cos(rotation) + vIn.pos.x * sin(rotation);
     float3 posW = mul(gWorld, float4(vIn.pos, 1.f)).xyz;
-    posW += camPosition;
+   // posW += camPosition;
     output.posW = posW;
     float4x4 gViewProjMat = mul(gProjMat, gViewMat);
     output.posH = mul(gViewProjMat, float4(posW, 1.f));
@@ -105,70 +105,11 @@ VS_OUTPUT vsMain(VSIn vIn)
     return output;
 }
 
-[maxvertexcount(3)]
-void gsMain(triangle VS_OUTPUT input[3], inout TriangleStream<VS_OUTPUT> output) {
-    float3 a = input[0].posW;
-    float3 b = input[1].posW;
-    float3 c = input[2].posW;
-    float3 v1 = b - a;
-    float3 v2 = c - a;
-    float3 v3 = b - c;
-    if (v3.x != 0 || v3.y != 0 || v3.z != 0) { //(a.x != b.x && a.y != b.y && a.z != b.z) || ((a.x != c.x && a.y != c.y && a.z != c.z)) || (c.x != b.x && c.y != b.y && c.z != b.z)) {
-        float3 normal = normalize(cross(v1, v2));
-        // Output vertices with their corresponding normal
-        for (int i = 0; i < 3; i++)
-        {
-            VS_OUTPUT o = input[i];
-            o.normalW = normal;
-            // }
-            output.Append(o);
-        }
-    }
-    else {
-        for (int i = 0; i < 3; i++)
-        {
-            VS_OUTPUT o = input[i];
-            o.normalW = float3(0.f);
-            output.Append(o);
-        }
-
-    }
-
-}
 
 
 
 float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
 {
-       float t = 0.f;
-       float u = 0.f;
-       float v = 0.f;
-       float3 v1 = float3(0.f);
-       float3 v2 = float3(0.f);
-       float3 v3 = float3(0.f);
-       float3 v4 = float3(0.f);
-       float3 dir = vsOut.normalW;
-       float3 pos = vsOut.posW;
-       int bouncesNum = bounces;
-       bool render = true;
 
-      if (simulate) {
-          bool quad = findQuad( pos, dir, t,  u,  v, v1,  v2, v3, v4);
-          if (quad) {
-              int hitcount = bounces;
-               ray_march(pos, dir, hitcount);
-                uint twidth;
-                uint theight;
-                tex2D_uav.GetDimensions(twidth, theight);
-                float2 res = world_to_latlong_map(normalize(dir));
-                    for (uint i = 0; i < 10; i++) {
-                        InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
-                    }
-            }
-
-
-
-
-       }
-return float4(1, 1, 1, 1);
+return float4(1,0,0, 1);
 }

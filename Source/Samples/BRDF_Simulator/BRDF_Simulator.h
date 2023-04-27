@@ -63,6 +63,7 @@ private:
     void setCamController();
     void setEnvMapPipeline();
     void setEnvMapShaderVars();
+    void setModelVars();
     void loadOrthoQuad();
     void setOrthoCubeVars();
     void setSceneVars();
@@ -131,7 +132,7 @@ private:
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 
     Falcor::int2 planSizeTemp = Falcor::int2(1);
-    Falcor::int2 planSize = Falcor::int2(1);
+    Falcor::int2 planSize = Falcor::int2(60,60);
     float orthCamWidth = 2;
     float orthCamHeight = 1;
     float roughness = 0.f;
@@ -139,6 +140,9 @@ private:
     int bounces = 0;
     int jitterInternal = 0;
     int bouncesInternal = 0;
+
+    int currLayer = 1;
+    int currLayerTemp = 1;
     float3 camCurrPos = float3(0.f);
     Falcor::float3 shapePosition = Falcor::float3(0);
 
@@ -152,15 +156,33 @@ private:
     bool mOrthoCam = false;
 
     std::string mModelString;
-    bool showDebuggingQuad = false;
+    bool showDebuggingQuad = true;
 
     bool debuggingQuad = false;
 
+
+    bool Show_ortho = false;
     bool BRDF_Simulation = false;
     bool clearTexture = false;
-    float3 rotateQuad = float3(3.15f, 0.f, 0.f);
-    float3 orthoCamPostion = float3(0.f ,-23.500000f, 0.f);
-
+    float3 up = float3(0.f, 1.f, 0.f);
+    float3 upTemp = float3(0.f, 1.f, 0.f);
+    float3 rotateQuad = float3(0.f, 0.f, 90.f);
+    float3 rotateQuadTemp = float3(0.f, 0.f, 90.f);
+    float3 orthoCamPostionTemp = float3(0.f ,0.f, 0.f);
+    float3 orthoCamPostion = float3(0.f, 0.f, 0.f);
+    float3 QuadLookAtTemp = float3(1.5f, 0.f, 1.5f);
+    float3 QuadLookAt = float3(1.5f, 0.f, 1.5f);
     bool mMicrofacetes = true;
     bool mObjectSimulation = false;
+
+    bool switchBool = false;
+
+    bool isCookTorrence = false;
+    bool isSimulation = false;
+
+    float metallic = 0.f;
+    float mRoughness = 0.f;
+    float3 mAlbedo = float3(0.24f, 0.24f ,0.24f);
+    float ao = float(1.f);
+    bool runSimulation = false;
 };
