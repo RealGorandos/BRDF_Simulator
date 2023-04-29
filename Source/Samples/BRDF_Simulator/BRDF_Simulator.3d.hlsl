@@ -55,34 +55,30 @@ void gsMain(triangle VSOut input[3], inout TriangleStream<VSOut> output) {
 
 
 
-void updateTexture(float3 posIn, float3 dirIn, float4x4 worldMat, float3x3 invWorldMat) {
+void updateTexture(float3 posIn, float3 dirIn) {
     uint twidth;
     uint theight;
     tex2D_uav.GetDimensions(twidth, theight);
    
-    int hitCount = bounces;
+    int hitCount = bounces - 1;
     float3 pos = posIn;
     float3 dir = dirIn;
-    //TODO: DEBUG BOUNCES
-    //ray_march(pos, dir, hitCount, worldMat, invWorldMat);
-    //if (hitCount >= 0) {
-    float2 res = world_to_latlong_map(normalize(dir));
-    InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
 
-    //}
-   // return float4(dir, 1.f);
+    bool render = ray_march(pos, dir, hitCount);
+    if (hitCount >= 0 && render) {
+        float2 res = world_to_latlong_map(normalize(dir));
+        InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
+    }
+
 }
 
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
     if (BRDF_Simulation) {
-        float4x4 worldMat = gScene.getWorldMatrix(vsOut.instanceID);
-        float3x3 invWorldMat = gScene.getInverseTransposeWorldMatrix(vsOut.instanceID);
         float3 c_dir = normalize(c_pos);
         float3 preRef = normalize(reflect(c_dir, vsOut.normalW));
         
-        updateTexture(vsOut.posW, preRef, worldMat, invWorldMat);
-        //return float4(vsOut.normalW, 1.f);
+        updateTexture(vsOut.posW, preRef);
         }
     return float4(vsOut.normalW, 1.f);
 }

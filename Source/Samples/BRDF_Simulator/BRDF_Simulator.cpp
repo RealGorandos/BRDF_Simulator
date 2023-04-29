@@ -47,7 +47,7 @@ void BRDF_Simulator::setEnvMapPipeline() {
     mpCubePointSampler = Sampler::create(samplerDesc);
    // std::filesystem::path path;
 
-    auto pTex = Texture::create2D(50, 50, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
+    auto pTex = Texture::create2D(150, 150, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
     pTex->setName("Enviroment Map");
     
     mpCubeScene->setEnvMap(EnvMap::create(pTex));
@@ -68,8 +68,8 @@ void BRDF_Simulator::loadOrthoQuad() {
     N.transform[1][3] = float(currLayer);
     N.transform[2][3] = float(planSize[0] + 2) / 2.f;
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
-    float width = 60;
-    float height = 30;
+    float width = 40;
+    float height = 20;
     Falcor::TriangleMesh::SharedPtr quadTemp = TriangleMesh::createQuad(float2(width, height));
     orthCamWidth = width / 2.f;
     orthCamHeight = height / 2.f;
