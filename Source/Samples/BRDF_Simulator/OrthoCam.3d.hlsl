@@ -2,10 +2,8 @@ import Scene.Raster;
 import Utils.Sampling.TinyUniformSampleGenerator;
 import Rendering.Lights.LightHelpers;
 import Utils.Math.MathHelpers;
-#include "Simulation.lib.hlsl"
 
-#define kEpsilon 0.000001
-#define PI 3.14159265358979323846264338327950288
+
 struct VS_OUTPUT
 {
     float3 posW       : POSW;
@@ -22,20 +20,7 @@ cbuffer PerFrameCB
 {
     float4x4 gWorld;
     float4x4 gViewMat;
-    uniform uint totalPixels;
     float4x4 gProjMat;
-    //  float gScale;
-    bool gConstColor;
-    uniform float3 rotation;
-    uniform float3 camPosition;
-    uniform float cameraSize;
-    RWTexture2D<uint> tex2D_uav;
-    SamplerState  envSampler;
-    bool simulate;
-    uniform int2 surfaceSize;
-    uniform float roughness;
-    uniform int bounces;
-    float4x4 surfaceWorldMat;
 };
 
 float3x3 rotate(float alpha, float beta, float gamma) {
@@ -78,11 +63,8 @@ VS_OUTPUT vsMain(VSIn vIn)
     VS_OUTPUT output;
     const GeometryInstanceID instanceID = { vIn.instanceID };
     float4x4 worldMat = gScene.getWorldMatrix(instanceID);
-  //  vIn.pos = mul(vIn.pos, rotate(rotation.x, rotation.y, rotation.z));// vIn.pos.x* cos(rotation) - vIn.pos.y * sin(rotation);
-   // vIn.pos = mul(float4(vIn.pos, 1.f), scale(cameraSize)).xyz;
-    //float new_y = vIn.pos.y * cos(rotation) + vIn.pos.x * sin(rotation);
+
     float3 posW = mul(gWorld, float4(vIn.pos, 1.f)).xyz;
-   // posW += camPosition;
     output.posW = posW;
     float4x4 gViewProjMat = mul(gProjMat, gViewMat);
     output.posH = mul(gViewProjMat, float4(posW, 1.f));

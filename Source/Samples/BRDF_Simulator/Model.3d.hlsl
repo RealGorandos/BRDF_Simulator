@@ -2,10 +2,10 @@ import Scene.Raster;
 import Rendering.Lights.LightHelpers;
 import Utils.Sampling.TinyUniformSampleGenerator;
 import Utils.Math.MathHelpers;
+import Scene.Scene;
+#include "Cook_Torrence.brdf.hlsl"
+#include "Efficient_Simulation.hlsl"
 
-
-
-#define PI 3.14159265359
 cbuffer PerFrameCB : register(b0)
 {
 
@@ -17,10 +17,44 @@ cbuffer PerFrameCB : register(b0)
     uniform float3 albedo;
     //Simulation Type
     uniform bool cookTorrence;
+    uniform bool mySimulation;
 
+    //brdf simulation boolean
     uniform bool startBrdf;
-};
 
+    uniform uint  gSamples;
+    //uniform Texture2DArray  texture2DList;
+    //EnvMap gEnvMap_0;
+    //EnvMap gEnvMap_1;
+    //EnvMap gEnvMap_2;
+    //EnvMap gEnvMap_3;
+    //EnvMap gEnvMap_4;
+    //EnvMap gEnvMap_5;
+    //EnvMap gEnvMap_6;
+    //EnvMap gEnvMap_7;
+    //EnvMap gEnvMap_8;
+    //EnvMap gEnvMap_9;
+    Texture2D texture2d_0;
+    Texture2D texture2d_1;
+    Texture2D texture2d_2;
+    Texture2D texture2d_3;
+    Texture2D texture2d_4;
+    Texture2D texture2d_5;
+    Texture2D texture2d_6;
+    Texture2D texture2d_7;
+    Texture2D texture2d_8;
+    Texture2D texture2d_9;
+    SamplerState gSampler_0;
+    SamplerState gSampler_1;
+    SamplerState gSampler_2;
+    SamplerState gSampler_3;
+    SamplerState gSampler_4;
+    SamplerState gSampler_5;
+    SamplerState gSampler_6;
+    SamplerState gSampler_7;
+    SamplerState gSampler_8;
+    SamplerState gSampler_9;
+};
 
 
 VSOut vsMain(VSIn vIn)
@@ -31,92 +65,16 @@ VSOut vsMain(VSIn vIn)
 }
 
 
-float DistributionGGX(float3 N, float3 H, float roughness)
-{
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-
-    float num = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-
-    return num / denom;
-}
-
-float GeometrySchlickGGX(float NdotV, float roughness)
-{
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
-
-    float num = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-
-    return num / denom;
-}
-
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
-{
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
-    return ggx1 * ggx2;
-}
-
-float3 fresnelSchlick(float cosTheta, float3 F0)
-{
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
     //TODO: START With cook torrence
     if (startBrdf) {
         if (cookTorrence) {
-            float3 N = normalize(vsOut.normalW);
-            float3 V = normalize(camPos - vsOut.posW);
-
-            float3 Lo = float3(0.0);
-            float3 lightPosition = float3(1.f);
-            float3 L = normalize(lightPosition - vsOut.posW);
-            float3 H = normalize(V + L);
-            float distance = length(lightPosition - vsOut.posW);
-            float attenuation = 1.0 / (distance * distance);
-            float3 lightColor = float3(300.0f);
-            float3 radiance = lightColor * attenuation;
-
-
-            float3 F0 = float3(0.04);
-            F0 = lerp(F0, albedo, metallic);
-            float3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
-
-            float NDF = DistributionGGX(N, H, roughness);
-            float G = GeometrySmith(N, V, L, roughness);
-
-            float3 numerator = NDF * G * F;
-            float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-            float3 specular = numerator / denominator;
-
-            float3 kS = F;
-            float3 kD = float3(1.0) - kS;
-
-            kD *= 1.0 - metallic;
-
-            //const float PI = 3.14159265359;
-
-            float NdotL = max(dot(N, L), 0.0);
-            Lo += (kD * albedo / PI + specular) * radiance * NdotL;
-            //TODO: SET AO TO BE ENTERED BY THE USER
-            float3 ambient = float3(0.03) * albedo * ao;
-            float3 color = ambient + Lo;
-
-            color = color / (color + float3(1.0));
-            color = pow(color, float3(1.0 / 2.2));
-
+            float3 color = cook_torrence_BRDF(vsOut.posW, vsOut.normalW);
+            return float4(color, 1.f);
+        }
+        else if (mySimulation) {
+            float3 color = efficient_simulation(vsOut.posW, vsOut.normalW);
             return float4(color, 1.f);
         }
     } 

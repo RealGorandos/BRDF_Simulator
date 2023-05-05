@@ -27,7 +27,7 @@
  **************************************************************************/
 #pragma once
 #include "Falcor.h"
-
+#include <vector>
 using namespace Falcor;
 
 class BRDF_Simulator : public IRenderer
@@ -43,8 +43,7 @@ public:
     enum class BRDF_Type
     {
         BRDF_Simulation,
-        Cook_Torrance,
-        GGX
+        Cook_Torrance
     };
 
     void onLoad(RenderContext* pRenderContext) override;
@@ -55,31 +54,73 @@ public:
     void onGuiRender(Gui* pGui) override;
 
 private:
+    //Loading model from a file
     void loadModel(ResourceFormat fboFormat);
     void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat);
+    void envMapConvert(Falcor::EnvMap& envMap, int currLayer);
+    //Render the microfacts surface
     void renderSurface();
+
+    //Camera functions
     void resetCamera();
-    void setModelString(double loadTime);
     void setCamController();
+    void setModelString(double loadTime);
+
+    //Render the enviroment map and setup the pipeline
     void setEnvMapPipeline();
+
+    //Passing variables to the pipelines
     void setEnvMapShaderVars();
     void setModelVars();
-    void loadOrthoQuad();
-    void setOrthoCubeVars();
+    void setOrthoVisualizorVars();
     void setSceneVars();
+
+    //load the camera visualization Quad
+    void loadOrthoVisualizor(int currLayer);
+
+
+    //Surface pipeline gui
+    void loadSurfaceGUI(Gui::Window& w);
+    void loadModelGUI(Gui::Window& w);
+
+    //Rasterize pipelines
+    void rasterizeSurfaceView(RenderContext* pRenderContext);
+    void rasterizeModelView(RenderContext* pRenderContext);
+
+    //Jitter camera
+    void jitterCamera();
+
+    //Continous Simulation
+    void continousSimulation();
+
+    //Update EnvMap texture function
+    void  updateEnvMapTexture(bool clear, bool update, bool get, int currLayer);
+
+    void setEnvMapModelShaderVars();
+
     Sampler::SharedPtr mpPointSampler = nullptr;
     Sampler::SharedPtr mpLinearSampler = nullptr;
     Sampler::SharedPtr mpCubePointSampler = nullptr;
+    DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
+    DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
+    std::string mModelString;
+
     //Main scene PIPELINE
     Scene::SharedPtr mpScene;
     GraphicsProgram::SharedPtr mpProgram = nullptr;
     GraphicsVars::SharedPtr mpProgramVars = nullptr;
     GraphicsState::SharedPtr mpGraphicsState = nullptr;
+    SceneBuilder::SharedPtr mSceneBuilder;
+
     //Model PIPELINE
     Scene::SharedPtr mpModelScene;
     GraphicsProgram::SharedPtr mpModelProgram = nullptr;
     GraphicsVars::SharedPtr mpModelProgramVars = nullptr;
     GraphicsState::SharedPtr mpModelGraphicsState = nullptr;
+    bool mUseTriLinearFiltering = true;
+    bool mUseOriginalTangents = false;
+    bool mDontMergeMaterials = false;
+
     //CubeBox scene PIPELINE
     Scene::SharedPtr mpCubeScene;
     GraphicsProgram::SharedPtr mpCubeProgram = nullptr;
@@ -91,98 +132,81 @@ private:
     Texture::SharedPtr pTex;
     Sampler::SharedPtr mpSampler;
 
-
     //Orthographic Camera simulation PIPELINE
-    bool mUseTriLinearFiltering = true;
-    Sampler::SharedPtr mpDebuggingQuadPointSampler = nullptr;
-    Sampler::SharedPtr mpDebuggingQuadLinearSampler = nullptr;
-
     GraphicsProgram::SharedPtr mpDebuggingQuadProgram = nullptr;
     GraphicsVars::SharedPtr mpDebuggingQuadProgramVars = nullptr;
     GraphicsState::SharedPtr mpDebuggingQuadGraphicsState = nullptr;
-
-    bool mpDebuggingQuadDrawWireframe = false;
-
     SceneBuilder::SharedPtr mpDebuggingQuadSceneBuilder;
     Scene::SharedPtr mpDebuggingQuadScene;
     RasterizerState::SharedPtr mpDebuggingQuadWireframeRS = nullptr;
-
     DepthStencilState::SharedPtr mpDebuggingQuadNoDepthDS = nullptr;
     DepthStencilState::SharedPtr mpDebuggingQuadDepthTestDS = nullptr;
-    float cameraSize = 0.110000f;
-    //////
-    bool mUseOriginalTangents = false;
-    bool mDontMergeMaterials = false;
 
     
-   
+   //Dropdown lists
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
-
+    BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::Cook_Torrance;
     
-    BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::BRDF_Simulation;
-    
-    SceneBuilder::SharedPtr mSceneBuilder ;
 
-    //WIREFRAME VARIABLEs
+    //Surface variables
+    Falcor::int2 planSize = Falcor::int2(60,60); //Surface Of Microfacets size
+    float roughness = 0.f;
 
-    RasterizerState::CullMode mCullMode = RasterizerState::CullMode::Back;
-    bool mDrawWireframe = false;
-
-    DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
-    DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
-
-    Falcor::int2 planSizeTemp = Falcor::int2(1);
-    Falcor::int2 planSize = Falcor::int2(60,60);
+    //Ortho Camera variables
     float orthCamWidth = 2;
     float orthCamHeight = 1;
-    float roughness = 0.f;
-    int jitterNum = 3;
-    int bounces = 0;
-    int jitterInternal = 0;
-    int bouncesInternal = 0;
-
-    int currLayer = 1;
-    int currLayerTemp = 1;
-    float3 camCurrPos = float3(0.f);
-    Falcor::float3 shapePosition = Falcor::float3(0);
-
-    float  orthoLeft;
-    float  orthoRight;
-    float  orthoTop;
-    float  orthoBottom;
-    float  pixelsNum;
-    //Orthographic Camera Data
-    Falcor::rmcv::mat4 storeProjMat = Falcor::rmcv::mat4(1.f);
     bool mOrthoCam = false;
 
-    std::string mModelString;
-    bool showDebuggingQuad = true;
+    //Simulation Variables
+    int jitterNum = 3;
+    int bounces = 0;
+    int jitterInternal = 2;
+    int bouncesInternal = 2;
+    bool switchBool = false;
 
-    bool debuggingQuad = false;
-
-
-    bool Show_ortho = false;
+    bool contSwitchBool = false;
+    //Buttons variables
     bool BRDF_Simulation = false;
     bool clearTexture = false;
+    bool continous_simulation = false;
+
+    //OrthoQuad Visualization variables
     float3 up = float3(0.f, 1.f, 0.f);
-    float3 upTemp = float3(0.f, 1.f, 0.f);
     float3 rotateQuad = float3(0.f, 0.f, 90.f);
-    float3 rotateQuadTemp = float3(0.f, 0.f, 90.f);
-    float3 orthoCamPostionTemp = float3(0.f ,0.f, 0.f);
     float3 orthoCamPostion = float3(0.f, 0.f, 0.f);
-    float3 QuadLookAtTemp = float3(1.5f, 0.f, 1.5f);
     float3 QuadLookAt = float3(1.5f, 0.f, 1.5f);
+    int degOfRotation = 15;
+    int maxLayer = 10;
+    float3 cameraPos = float3(0.f);
+
+    //Layers variables
+    int currLayer = 1;
+    int currLayerTemp = 1;
+    int currLayerInternal = 1;
+    //Falcor::Texture::SharedPtr var = Falcor::Texture::create2D(150, 150, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
+    std::vector<Falcor::EnvMap::SharedPtr> textureVect;
+    //Model view switching variables
     bool mMicrofacetes = true;
     bool mObjectSimulation = false;
 
-    bool switchBool = false;
-
+    //BRDF method boolean
     bool isCookTorrence = false;
+
+    //Our BRDF boolean
     bool isSimulation = false;
 
+    //Run brdf simulation
+    bool runSimulation = false;
+
+    
+    //Cook-torrence variables
     float metallic = 0.f;
     float mRoughness = 0.f;
     float3 mAlbedo = float3(0.24f, 0.24f ,0.24f);
     float ao = float(1.f);
-    bool runSimulation = false;
+
+
+
+    int layerCnt = 2;
+    int timer = 300;
 };

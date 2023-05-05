@@ -17,14 +17,14 @@ cbuffer PerFrameCB
 {
     float4x4 gWorld;
     float4x4 gViewMat;
-    uniform uint totalPixels;
     float4x4 gProjMat;
     float gScale;
     uniform uint  gSamples;
    // EnvMap gEnvMap;
     Texture2D tex2D_uav;
     SamplerState envSampler;
-    uniform bool gObjSimulation;
+
+
 
 };
 

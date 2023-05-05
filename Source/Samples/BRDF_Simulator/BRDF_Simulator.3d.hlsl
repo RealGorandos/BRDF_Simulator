@@ -3,30 +3,18 @@ import Rendering.Lights.LightHelpers;
 import Utils.Sampling.TinyUniformSampleGenerator;
 import Utils.Math.MathHelpers;
 #include "Simulation.lib.hlsl"
-#include "Cook_Torrence.brdf.hlsl"
+
 
 //uniform EnvMap gEnvMap : register(t7);
-RWStructuredBuffer<int> counter : register(u0);
+
 cbuffer PerFrameCB : register(b0)
 {
-    bool simulate;
     bool BRDF_Simulation;
-    bool gConstColor;
-    uniform bool LoadedObj;
     RWTexture2D<uint> tex2D_uav;
-    SamplerState  envSampler;
     uniform float roughness;
-    uniform int samples;
     uniform int bounces;
     uniform int2 surfaceSize;
-    uniform float totalPixels;
-
-    uniform float orthCamWidth;
-    uniform float orthCamHeight;
-    uniform int nearPlanePos;
-    uniform float3 c_pos;
-
-    uniform float4x4 gWorld;
+    uniform float3 c_dir;
 };
 
 
@@ -55,19 +43,26 @@ void gsMain(triangle VSOut input[3], inout TriangleStream<VSOut> output) {
 
 
 
-void updateTexture(float3 posIn, float3 dirIn) {
+void updateTexture(float3 posIn, float3 dirIn, bool upper, bool lower) {
     uint twidth;
     uint theight;
     tex2D_uav.GetDimensions(twidth, theight);
    
-    int hitCount = bounces - 1;
+    int hitCount = bounces;
     float3 pos = posIn;
     float3 dir = dirIn;
 
-    bool render = ray_march(pos, dir, hitCount);
-    if (hitCount >= 0 && render) {
+    //Apply Ray marching
+    bool render = ray_march(pos, dir, hitCount, upper, lower);
+
+
+    float3 dirMirror = float3(dir.x, dir.y, -dir.z);
+
+    if (render) {
         float2 res = world_to_latlong_map(normalize(dir));
+        float2 resMirror = world_to_latlong_map(normalize(dirMirror));
         InterlockedAdd(tex2D_uav[uint2((res.x * twidth), (res.y * theight))], 1);
+        InterlockedAdd(tex2D_uav[uint2((resMirror.x * twidth), (resMirror.y * theight))], 1);
     }
 
 }
@@ -75,10 +70,32 @@ void updateTexture(float3 posIn, float3 dirIn) {
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
     if (BRDF_Simulation) {
-        float3 c_dir = normalize(c_pos);
-        float3 preRef = normalize(reflect(c_dir, vsOut.normalW));
-        
-        updateTexture(vsOut.posW, preRef);
+        bool upper = false;
+        bool lower = false;
+        float3 v1 = float3(0.f);
+        float3 v2 = float3(0.f);
+        float3 v3 = float3(0.f);
+        float3 v4 = float3(0.f);
+
+        float t = 0.f;
+        float t0 = 0.f;
+        float u = 0.f;
+        float v = 0.f;
+
+        float3 current_block = floor(vsOut.posW);
+        fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);
+
+
+
+
+        float3 c_dir_normalized = normalize(c_dir);
+        float3 preRef = normalize(reflect(c_dir_normalized, normalize(vsOut.normalW)));
+
+        //Checking if there is a Ray-Triangle Intersection in the current block
+         upper = rayTriangleIntersect(vsOut.posW, preRef, v1, v2, v3, t, u, v);
+         lower = rayTriangleIntersect(vsOut.posW, preRef, v4, v3, v2, t0, u, v);
+
+        updateTexture(vsOut.posW, preRef, upper, lower);
         }
     return float4(vsOut.normalW, 1.f);
 }

@@ -1,5 +1,5 @@
 #define PI 3.14159265358979323846264338327950288
-#define kEpsilon 0.00000000001
+#define kEpsilon 0.000001
 
 /*________Helper Methods for finding Quads and Lines_______________________*/
 
@@ -133,26 +133,26 @@ bool rayTriangleIntersect(
     float3 pvec = cross(dir, v0v2);
     float det = dot(v0v1, pvec);
     // ray and triangle are parallel if det is close to 0
-    if ((det > -kEpsilon) && ( det < kEpsilon)) return false;
+    //if (( det < kEpsilon)) return false;
 
     float invDet = 1.0 / det;
 
     float3 tvec = orig - v0;
     u = dot(tvec, pvec) *invDet;
-
+    if (u < 0.f || u > 1.f) return false;
 
     float3 qvec = cross(tvec, v0v1);
     v = dot(dir, qvec) *invDet;
+    if (v < 0.f || v + u> 1.f) return false;
 
+    t = dot(v0v2, qvec) * invDet;
 
-    t = dot(v0v2, qvec) *invDet;
-
-    if (t > 0.f && u > 0.f && v > 0.f && 1 - u - v > 0) return true;
+    if (t <= 0) return false;
    
     
 
 
-    return false;
+    return true;
 
 }
 /*Ray Line intersection Function*/
@@ -169,7 +169,7 @@ bool rayLineIntersect(const float2 rayOrigin, const float2 rayDirection, const f
     float u = ((lineStart.x - rayOrigin.x) * rayDirection.y - (lineStart.y - rayOrigin.y) * rayDirection.x) / d;
     t = ((lineStart.x - rayOrigin.x) * lineDir.y - (lineStart.y - rayOrigin.y) * lineDir.x) / d;
 
-    if ((u < 0.f || u > 1.f) || (t < 0.f)) return false;
+    if ((u < 0.f || u > 1.f) || (t <= 0.f)) return false;
 
     return true;
 }
@@ -183,7 +183,7 @@ void updateDir(inout float3  exp_point, inout float3  dir, float t, float3 v1, f
     float3 v1v3 = (v3 - v1);
     float3 N = normalize(cross(v1v3, v1v2));
 
-    exp_point = exp_point + dir * (t);
+    exp_point = exp_point + dir * (t);//  -dir * 0.01f;
 
 
     dir = normalize(reflect(dir, N)); 
@@ -191,16 +191,20 @@ void updateDir(inout float3  exp_point, inout float3  dir, float t, float3 v1, f
 
 }
 /*Checks if the point is still in the Surface*/
-bool isPointInCube(float3 exp_point, int2 surfaceSize) {
+bool isPointInCube(float3 exp_point, float3 quadDeter, int2 surfaceSize) {
 
     return (exp_point.x >= 1.f && exp_point.x <= surfaceSize[1] + 1.f) &&
            (exp_point.z >= 1.f && exp_point.z <= surfaceSize[0] + 1.f) &&
-           (exp_point.y >= 0.f && exp_point.y <= 10.f);
+           (exp_point.y >= 0.f && exp_point.y <= 5.f) &&
+
+            (quadDeter.x >= 1.f && quadDeter.x <= surfaceSize[1] + 1.f) &&
+            (quadDeter.z >= 1.f && quadDeter.z <= surfaceSize[0] + 1.f) &&
+            (quadDeter.y >= 0.f && quadDeter.y <= 5.f);
 
 }
 
 /*___Checks if there is an intersection between a point and a triangle___*/
-bool isTriangleIntersection(inout float3 exp_point,inout float3 dir, float3 v1, float3 v2, float3 v3, float3 v4, inout int hits) {
+bool isTriangleIntersection(inout float3 exp_point,inout float3 dir, float3 v1, float3 v2, float3 v3, float3 v4, inout int hits, inout bool upper, inout bool lower) {
     ///*Triangle Variables*/
     float t0 = 0.f;
     float t = 0.f;
@@ -208,42 +212,83 @@ bool isTriangleIntersection(inout float3 exp_point,inout float3 dir, float3 v1, 
     float v = 0.f;
     bool isTriaIntersect = false;
 
+
     //Checking if there is a Ray-Triangle Intersection in the current block
     bool rayTriangleIntersect_Upper = rayTriangleIntersect(exp_point, dir, v1, v2, v3, t, u, v);
     bool rayTriangleIntersect_Lower = rayTriangleIntersect(exp_point, dir, v4, v3, v2, t0, u, v);
 
+
     //Checking Upper Triangle
-    if (rayTriangleIntersect_Upper && rayTriangleIntersect_Lower) {
-        if (t < t0) {
-            updateDir(exp_point, dir, t, v1, v2, v3);
-            isTriaIntersect = true;
-            hits--;
-        }
-        else {
-            updateDir(exp_point, dir, t0, v4, v3, v2);
-            isTriaIntersect = true;
-            hits--;
-        }
-    }
-    else if (rayTriangleIntersect_Upper ) {
+    if (rayTriangleIntersect_Upper && !upper) {
+        //dir = float3(0.f, 1.f, 0.f);
         updateDir(exp_point, dir, t, v1, v2, v3);
         isTriaIntersect = true;
+        upper = true;
+        lower = false;
         hits--;
     }
-    //Checking Lower Triangle
-    else if (rayTriangleIntersect_Lower) {
-        updateDir(exp_point, dir, t0, v4, v3, v2);
+    ////Checking Lower Triangle
+    else if (rayTriangleIntersect_Lower && !lower) {
+        //dir = float3(0.f, 1.f, 0.f);
+        updateDir(exp_point, dir, t0 , v4, v3, v2);
         isTriaIntersect = true;
-
+        upper = false;
+        lower = true;
         hits--;
-
     }
 
     return isTriaIntersect;
 }
 
+void auxIsTriangleIntersection(inout float3 exp_point, inout float3 dir, float3 v1, float3 v2, float3 v3, float3 v4, inout int hits, inout bool upper, inout bool lower) {
+
+    ///*Triangle Variables*/
+    float t0 = 0.f;
+    float t = 0.f;
+    float u = 0.f;
+    float v = 0.f;
+    bool isTriaIntersect = false;
 
 
+    //Checking if there is a Ray-Triangle Intersection in the current block
+    bool rayTriangleIntersect_Upper = rayTriangleIntersect(exp_point, dir, v1, v2, v3, t, u, v);
+    bool rayTriangleIntersect_Lower = rayTriangleIntersect(exp_point, dir, v4, v3, v2, t0, u, v);
+
+    if (rayTriangleIntersect_Upper && rayTriangleIntersect_Lower) {
+        if (t0 < t) {
+            updateDir(exp_point, dir, t, v1, v2, v3);
+            upper = true;
+            lower = false;
+            hits--;
+        }
+        else if (t < t0) {
+            updateDir(exp_point, dir, t0, v4, v3, v2);
+            upper = false;
+            lower = true;
+            hits--;
+        }
+
+    }
+    //Checking Upper Triangle
+    else if (rayTriangleIntersect_Upper) {
+        //dir = float3(0.f, 1.f, 0.f);
+        updateDir(exp_point, dir, t, v1, v2, v3);
+        isTriaIntersect = true;
+        upper = true;
+        lower = false;
+        hits--;
+    }
+    ////Checking Lower Triangle
+    else if (rayTriangleIntersect_Lower) {
+        //dir = float3(0.f, 1.f, 0.f);
+        updateDir(exp_point, dir, t0 , v4, v3, v2);
+        isTriaIntersect = true;
+        upper = false;
+        lower = true;
+        hits--;
+    }
+
+}
 
 /*___Update the cell___*/
 bool updateCell(inout float3 exp_point, inout float3 quadDeter, inout  float3 dir,float3 v1, float3 v2, float3 v3, float3 v4 ) {
@@ -263,21 +308,23 @@ bool updateCell(inout float3 exp_point, inout float3 quadDeter, inout  float3 di
     //Updating position if there is an intersection
     if (intersection_1 && intersection_2) {
         if (t1 < t2) {
-            quadDeter = exp_point + dir * (t1 + 0.01);
-            exp_point = exp_point + dir * (t1 );
+            quadDeter = exp_point + dir * (t1) + dir * (0.01f);
+            exp_point = exp_point + dir * (t1);
+
         }
         else {
-            quadDeter = exp_point + dir * (t2 + 0.01);
-            exp_point = exp_point + dir * (t2 );
+            quadDeter = exp_point + dir * (t2) + dir * (0.01f);
+            exp_point = exp_point + dir * (t2);
+
         }
     }
     else if (intersection_1) {
-        quadDeter = exp_point + dir * (t1 + 0.01);
-        exp_point = exp_point + dir * (t1);
+        quadDeter = exp_point + dir * (t1 ) + dir * (0.01f);
+        exp_point = exp_point + dir * (t1 );
     }
     else if (intersection_2) {
-        quadDeter = exp_point + dir * (t2 + 0.01);
-        exp_point = exp_point + dir * (t2);
+        quadDeter = exp_point + dir * (t2) + dir * (0.01f);
+        exp_point = exp_point + dir * (t2 );
     }
     else {
         return false;
@@ -288,7 +335,7 @@ bool updateCell(inout float3 exp_point, inout float3 quadDeter, inout  float3 di
 
 
 /*March the ray along the surface*/
-bool ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount)
+bool ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount, bool upper, bool lower)
 {
     float3 exp_point = rayOrigin;
     float3 quadDeter = rayOrigin;
@@ -303,35 +350,37 @@ bool ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount)
 
     int hits = hitCount;
 
-    bool upper = false;
-    bool lower = false;
+    bool upperIn = upper;
+    bool lowerIn = lower;
 
-    while (
-        hits >= 0 && isPointInCube(exp_point, surfaceSize)
+    while (hits >= 0 &&
+        isPointInCube(exp_point, quadDeter, surfaceSize)
         )
     {
+            //Finding the Current Block
+            current_block = floor(quadDeter);
+            fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);
 
+            ////Checking if there is a triangle intersection
+            isTriaIntersect = isTriangleIntersection(exp_point, dir, v1, v2, v3, v4, hits, upperIn, lowerIn);
 
-        //Finding the Current Block
-        current_block = floor(quadDeter);
-        fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);
+            if (!isTriaIntersect) {
+                 upperIn = false;
+                 lowerIn = false;
+                 if(updateCell(exp_point, quadDeter, dir, v1, v2, v3, v4)) {
+                     //Finding the Current Block
+                     current_block = floor(quadDeter);
+                     fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);
 
-        //Checking if there is a triangle intersection
-        isTriaIntersect = isTriangleIntersection(exp_point, dir, v1, v2, v3, v4, hits);
-
-
-        //Cells Shifting
-        if (!isTriaIntersect) {
-            if (!updateCell(exp_point, quadDeter, dir, v1, v2, v3, v4)) {
-                break;
+                     ////Checking if there is a triangle intersection
+                     auxIsTriangleIntersection(exp_point, dir, v1, v2, v3, v4, hits, upperIn, lowerIn);
+                 }
             }
-        }
-
-        isTriaIntersect = false;
     }
 
     rayOrigin = exp_point;
     rayDir = dir;
     hitCount = hits;
-    return !isPointInCube(rayOrigin, surfaceSize);// && rayDir.y >= 0;
+    bool defected = dot(float3(0.f, -1.f, 0.f), rayDir) > 0.3f;
+    return !isPointInCube(rayOrigin, quadDeter, surfaceSize) && hitCount >= 0 && !defected  ;
 }
