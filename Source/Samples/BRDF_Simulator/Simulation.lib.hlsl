@@ -352,9 +352,10 @@ bool ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount, 
 
     bool upperIn = upper;
     bool lowerIn = lower;
-
+    int intersectionCnt = 5;
     while (hits >= 0 &&
-        isPointInCube(exp_point, quadDeter, surfaceSize)
+        isPointInCube(exp_point, quadDeter, surfaceSize) &&
+        intersectionCnt >= 0
         )
     {
             //Finding the Current Block
@@ -363,11 +364,12 @@ bool ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount, 
 
             ////Checking if there is a triangle intersection
             isTriaIntersect = isTriangleIntersection(exp_point, dir, v1, v2, v3, v4, hits, upperIn, lowerIn);
-
+            intersectionCnt--;
             if (!isTriaIntersect) {
                  upperIn = false;
                  lowerIn = false;
                  if(updateCell(exp_point, quadDeter, dir, v1, v2, v3, v4)) {
+                     intersectionCnt = 5;
                      //Finding the Current Block
                      current_block = floor(quadDeter);
                      fillVertices(current_block.x, current_block.z, v1, v2, v3, v4);

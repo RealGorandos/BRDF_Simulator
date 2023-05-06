@@ -34,16 +34,16 @@ cbuffer PerFrameCB : register(b0)
     //EnvMap gEnvMap_7;
     //EnvMap gEnvMap_8;
     //EnvMap gEnvMap_9;
-    Texture2D texture2d_0;
-    Texture2D texture2d_1;
-    Texture2D texture2d_2;
-    Texture2D texture2d_3;
-    Texture2D texture2d_4;
-    Texture2D texture2d_5;
-    Texture2D texture2d_6;
-    Texture2D texture2d_7;
-    Texture2D texture2d_8;
-    Texture2D texture2d_9;
+    RWTexture2D texture2d_0;
+    RWTexture2D texture2d_1;
+    RWTexture2D texture2d_2;
+    RWTexture2D texture2d_3;
+    RWTexture2D texture2d_4;
+    RWTexture2D texture2d_5;
+    RWTexture2D texture2d_6;
+    RWTexture2D texture2d_7;
+    RWTexture2D texture2d_8;
+    RWTexture2D texture2d_9;
     SamplerState gSampler_0;
     SamplerState gSampler_1;
     SamplerState gSampler_2;
@@ -78,5 +78,6 @@ float4 psMain(VSOut vsOut) : SV_TARGET
             return float4(color, 1.f);
         }
     } 
-return float4(0.f, 0.f, 0.f, 1.f);
+return float4(normalize(vsOut.normalW), 1.f);
+//return float4(0.f, 0.f, 0.f, 1.f);
 }

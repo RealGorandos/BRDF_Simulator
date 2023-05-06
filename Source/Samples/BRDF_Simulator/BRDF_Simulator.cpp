@@ -101,34 +101,34 @@ void BRDF_Simulator::setModelVars() {
 
     //Passing textures
     //mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture
-    mpModelProgramVars["PerFrameCB"]["texture2d_0"].setTexture(textureVect[0]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_0"].setUav(textureVect[0]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
                      
-    mpModelProgramVars["PerFrameCB"]["texture2d_1"].setTexture(textureVect[1]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_1"].setUav(textureVect[1]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(textureVect[1]->getEnvSampler());
                     
-    mpModelProgramVars["PerFrameCB"]["texture2d_2"].setTexture(textureVect[2]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_2"].setUav(textureVect[2]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(textureVect[2]->getEnvSampler());
                     
-    mpModelProgramVars["PerFrameCB"]["texture2d_3"].setTexture( textureVect[3]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_3"].setUav( textureVect[3]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(textureVect[3]->getEnvSampler());
                      
-    mpModelProgramVars["PerFrameCB"]["texture2d_4"].setTexture(textureVect[4]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_4"].setUav(textureVect[4]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(textureVect[4]->getEnvSampler());
                      
-    mpModelProgramVars["PerFrameCB"]["texture2d_5"].setTexture(textureVect[5]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_5"].setUav(textureVect[5]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(textureVect[5]->getEnvSampler());
                      
-    mpModelProgramVars["PerFrameCB"]["texture2d_6"].setTexture(textureVect[6]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_6"].setUav(textureVect[6]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(textureVect[6]->getEnvSampler());
                    
-    mpModelProgramVars["PerFrameCB"]["texture2d_7"].setTexture(textureVect[7]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_7"].setUav(textureVect[7]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(textureVect[7]->getEnvSampler());
                 
-    mpModelProgramVars["PerFrameCB"]["texture2d_8"].setTexture(textureVect[8]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_8"].setUav(textureVect[8]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(textureVect[8]->getEnvSampler());
                 
-    mpModelProgramVars["PerFrameCB"]["texture2d_9"].setTexture(textureVect[9]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["texture2d_9"].setUav(textureVect[9]->getEnvMap()->getUAV());
     mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(textureVect[9]->getEnvSampler());
     //pEnvMap->setShaderData(mpVars["PerFrameCB"]["gEnvMap"]);
 
@@ -195,7 +195,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     SceneBuilder::Node N;
     float x =  (currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f;
     //float x = (currLayer * 90.f / float(maxLayer)) * 3.14f / 180.f;
-    N.transform[0][3] = float(cos(x))* 60.f;
+    N.transform[0][3] = float(cos(x)) * 60.f;
     N.transform[1][3] = float(sin(x)) * 60.f;
     N.transform[2][3] = float(planSize[0] + 2) / 2.f;
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
@@ -382,18 +382,20 @@ void BRDF_Simulator::setEnvMapPipeline() {
 
 //Load Surface Pipeline GUI
 void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
+
+
+
     {
-        auto gridSettings = w.group("Surface Settings");
+        auto simulationSettings = w.group("Simulation Settings");
 
-        gridSettings.var("Roughness", roughness, 0.f, 1.f);
+        simulationSettings.var(" Surface Roughness", roughness, 0.f, 1.f);
+
+        simulationSettings.var("Camera Jitter", jitterNum, 2);
+
+        simulationSettings.var("Ray Bounces", bounces, 1);
+
+        simulationSettings.var("Current Layer", currLayer, 1, maxLayer);
     }
-
-
-    w.separator();
-
-
-    w.var("Jitter", jitterNum, 2);
-    w.var("Bounces", bounces, 1);
 
 
 
@@ -407,9 +409,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
     w.separator();
 
-    w.var("Current Layer", currLayer, 1, maxLayer);
     w.separator();
-    if (w.button("Draw To Texture")) {
+    if (w.button("Draw To Textures")) {
         BRDF_Simulation = true;
         mOrthoCam = true;
         currLayerInternal = currLayer;
@@ -420,22 +421,22 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
 
     }
-    clearTexture = w.button("Clear Texture");
+    clearTexture = w.button("Clear Textures");
 
-    if (w.button("Continous Simulation")) {
-        
-        BRDF_Simulation = true;
-        continous_simulation = true;
-        mOrthoCam = true;
-        currLayerInternal = currLayer;
-        //updateEnvMapTexture(false, true, false, currLayerInternal);
-        jitterInternal = jitterNum;
-        bouncesInternal = bounces;
-        mpScene->getCamera()->setPosition(cameraPos);
-        mpScene->getCamera()->setTarget(float3(float(planSize[0] + 2) / 2.f, 0.f, float(planSize[0] + 2) / 2.f));
-        mpScene->getCamera()->setUpVector(float3(0, 1, 0));
+    //if (w.button("Continous Simulation")) {
+    //    
+    //    BRDF_Simulation = true;
+    //    continous_simulation = true;
+    //    mOrthoCam = true;
+    //    currLayerInternal = currLayer;
+    //    //updateEnvMapTexture(false, true, false, currLayerInternal);
+    //    jitterInternal = jitterNum;
+    //    bouncesInternal = bounces;
+    //    mpScene->getCamera()->setPosition(cameraPos);
+    //    mpScene->getCamera()->setTarget(float3(float(planSize[0] + 2) / 2.f, 0.f, float(planSize[0] + 2) / 2.f));
+    //    mpScene->getCamera()->setUpVector(float3(0, 1, 0));
 
-    }
+    //}
     w.separator();
 
     if (w.button("View Model"))
@@ -484,13 +485,16 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
         w.var("Roughness", mRoughness, 0.f, 1.f);
         w.var("Albedo", mAlbedo, 0.f, 1.f);
 
-        // w.var("ao", ao, 0.f, 1.f);
-        // w.var("Albedo", jitterNum, 2);
+         w.var("ao", ao, 0.f, 1.f);
     }
     w.separator();
 
     if (w.button("Start Simulation")) {
         runSimulation = true;
+    }
+
+    if (w.button("Stop Simulation")) {
+        runSimulation = false;
     }
 
     if (w.button("View Surface"))
@@ -512,9 +516,9 @@ void BRDF_Simulator::rasterizeModelView(RenderContext* pRenderContext) {
     mpModelScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
     mpModelGraphicsState->setDepthStencilState(mpDepthTestDS);
     setModelVars();
-  //  setEnvMapModelShaderVars();
+    setEnvMapModelShaderVars();
     mpModelScene->rasterize(pRenderContext, mpModelGraphicsState.get(), mpModelProgramVars.get(), RasterizerState::CullMode::None);
-    //mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
+    mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
 }
 
 //void BRDF_Simulator::envMapConvert(Falcor::EnvMap& envMap, int currLayer) {
@@ -568,8 +572,9 @@ void BRDF_Simulator::jitterCamera() {
         this->BRDF_Simulation = false;
         this->mOrthoCam = false;
        // jitterInternal = jitterNum;
-       
-
+        if (currLayerInternal > 1) {
+            continous_simulation = true;
+        }
             mpScene->getCamera()->setPosition(cameraPos);
             mpScene->getCamera()->setTarget(float3(float(planSize[0] + 2) / 2.f, 0.f, float(planSize[0] + 2) / 2.f));
             mpScene->getCamera()->setUpVector(float3(0, 1, 0));
@@ -585,7 +590,10 @@ void BRDF_Simulator::jitterCamera() {
         float rand01 = get_random();
         float rand02 = get_random();
 
-        mpScene->getCamera()->setJitter(rand01, rand02);
+        //mpScene->getCamera()->setJitter(rand01, rand02);
+        mpScene->getCamera()->setPosition(float3(cameraPos.x, cameraPos.y + rand01, cameraPos.z + rand02));
+        mpScene->getCamera()->setTarget(float3(float(planSize[0] + 2) / 2.f, 0.f, float(planSize[0] + 2) / 2.f));
+        mpScene->getCamera()->setUpVector(float3(0, 1, 0));
         switchBool = true;
         this->mOrthoCam = true;
 
@@ -606,6 +614,7 @@ void BRDF_Simulator::jitterCamera() {
 #pragma region CONTINOUS SIMULATION
 void BRDF_Simulator::continousSimulation() {
     if (!BRDF_Simulation && continous_simulation && currLayerInternal >= 1 && currLayerInternal <= maxLayer) {
+        continous_simulation = false;
         BRDF_Simulation = true;
         mOrthoCam = true;
         currLayerInternal = currLayer;
@@ -677,10 +686,10 @@ void BRDF_Simulator::updateEnvMapTexture(bool clear, bool update, bool get, int 
 
 void BRDF_Simulator::onGuiRender(Gui* pGui)
 {
-    Gui::Window w(pGui, "BRDF Simulator Demo", { 400, 300 }, { 0, 100 });
+    Gui::Window w(pGui, "Menu", { 400, 300 }, { 0, 100 });
 
 
-    w.separator();
+   // w.separator();
 
     if (mMicrofacetes) {
         loadSurfaceGUI(w);
@@ -835,7 +844,7 @@ int main(int argc, char** argv)
     BRDF_Simulator::UniquePtr pRenderer = std::make_unique<BRDF_Simulator>();
 
     SampleConfig config;
-    config.windowDesc.title = "BRDF Simulator Demo";
+    config.windowDesc.title = "BRDF Simulator";
     config.windowDesc.resizableWindow = true;
 
     Sample::run(config, pRenderer);
