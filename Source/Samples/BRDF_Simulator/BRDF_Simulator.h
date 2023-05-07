@@ -203,10 +203,13 @@ private:
     float metallic = 0.f;
     float mRoughness = 0.f;
     float3 mAlbedo = float3(0.24f, 0.24f ,0.24f);
-    float ao = float(1.f);
+    float ao = float(0.f);
 
 
 
     int layerCnt = 2;
     int timer = 300;
+
+
+    std::string frames;
 };

@@ -23,7 +23,7 @@ float get_random()
 {
 
     static std::default_random_engine e;
-    static std::uniform_real_distribution<> dis(-(1.f / float(Falcor::getDisplayDpi())) / 2.f, (1.f / float(Falcor::getDisplayDpi())) / 2.f); // rage 0 - 1
+    static std::uniform_real_distribution<> dis(-0.5f, 0.5f); // rage 0 - 1
     return dis(e);
 }
 /////______________________________________________________________________________________________________________
@@ -102,35 +102,35 @@ void BRDF_Simulator::setModelVars() {
 
     //Passing textures
     //mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture
-    mpModelProgramVars["PerFrameCB"]["texture2d_0"].setUav(textureVect[0]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
-                     
-    mpModelProgramVars["PerFrameCB"]["texture2d_1"].setUav(textureVect[1]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(textureVect[1]->getEnvSampler());
-                    
-    mpModelProgramVars["PerFrameCB"]["texture2d_2"].setUav(textureVect[2]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(textureVect[2]->getEnvSampler());
-                    
-    mpModelProgramVars["PerFrameCB"]["texture2d_3"].setUav( textureVect[3]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(textureVect[3]->getEnvSampler());
-                     
-    mpModelProgramVars["PerFrameCB"]["texture2d_4"].setUav(textureVect[4]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(textureVect[4]->getEnvSampler());
-                     
-    mpModelProgramVars["PerFrameCB"]["texture2d_5"].setUav(textureVect[5]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(textureVect[5]->getEnvSampler());
-                     
-    mpModelProgramVars["PerFrameCB"]["texture2d_6"].setUav(textureVect[6]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(textureVect[6]->getEnvSampler());
-                   
-    mpModelProgramVars["PerFrameCB"]["texture2d_7"].setUav(textureVect[7]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(textureVect[7]->getEnvSampler());
-                
-    mpModelProgramVars["PerFrameCB"]["texture2d_8"].setUav(textureVect[8]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(textureVect[8]->getEnvSampler());
-                
-    mpModelProgramVars["PerFrameCB"]["texture2d_9"].setUav(textureVect[9]->getEnvMap()->getUAV());
-    mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(textureVect[9]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_0"].setUav(textureVect[0]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(mpPointSampler);          
+                                                                                        
+    mpModelProgramVars["PerFrameCB"]["texture2d_1"].setUav(textureVect[1]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(mpPointSampler);          
+                                                                                        
+    mpModelProgramVars["PerFrameCB"]["texture2d_2"].setUav(textureVect[2]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_3"].setUav( textureVect[3]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_4"].setUav(textureVect[4]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_5"].setUav(textureVect[5]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_6"].setUav(textureVect[6]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_7"].setUav(textureVect[7]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_8"].setUav(textureVect[8]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(mpPointSampler);        
+                                                                                      
+    mpModelProgramVars["PerFrameCB"]["texture2d_9"].setUav(textureVect[9]->getEnvMap()->getUAV(0));
+    mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(mpPointSampler);
     //pEnvMap->setShaderData(mpVars["PerFrameCB"]["gEnvMap"]);
 
    // const auto& pEnvMap = mpCubeScene->getEnvMap();
@@ -386,6 +386,14 @@ void BRDF_Simulator::setEnvMapPipeline() {
 //Load Surface Pipeline GUI
 void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
+    Gui::DropdownList cameraDropdown;
+    cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::FirstPerson, "First-Person" });
+    cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::Orbiter, "Orbiter" });
+    cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::SixDOF, "6-DoF" });
+    if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
+
+    w.separator();
+
 
 
     {
@@ -404,19 +412,16 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
     w.separator();
 
-    Gui::DropdownList cameraDropdown;
-    cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::FirstPerson, "First-Person" });
-    cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::Orbiter, "Orbiter" });
-    cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::SixDOF, "6-DoF" });
-    if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
-
-    w.separator();
-
     if (auto statsGroup = w.group("Statistics"))
     {
         const auto& s = mpScene->getSceneStats();
         const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
         std::ostringstream oss;
+
+        // Frames stats.
+        oss << "Frame Stats: " << frames << std::endl
+        << std::endl;
+
         // Geometry stats.
         oss << "Geometry stats:" << std::endl
             << "  Mesh count: " << s.meshCount << std::endl
@@ -532,6 +537,10 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
         w.var("Albedo", mAlbedo, 0.f, 1.f);
 
          w.var("ao", ao, 0.f, 1.f);
+    }
+
+    if (isSimulation) {
+        w.var("Albedo", mAlbedo, 0.f, 1.f);
     }
     w.separator();
 
@@ -762,7 +771,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 
     Sampler::Desc samplerDesc;
     samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
-    samplerDesc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
+    samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
     mpPointSampler = Sampler::create(samplerDesc);
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
     mpLinearSampler = Sampler::create(samplerDesc);
@@ -814,7 +823,7 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
     }
 
-
+    frames = gpFramework->getFrameRate().getMsg();
 
     TextRenderer::render(pRenderContext, mModelString, pTargetFbo, float2(10, 30));
 
