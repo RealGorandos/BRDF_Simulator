@@ -55,7 +55,7 @@ public:
 
 private:
     //Loading model from a file
-    void loadModel(ResourceFormat fboFormat);
+    bool loadModel(ResourceFormat fboFormat);
     void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat);
     void envMapConvert(Falcor::EnvMap& envMap, int currLayer);
     //Render the microfacts surface

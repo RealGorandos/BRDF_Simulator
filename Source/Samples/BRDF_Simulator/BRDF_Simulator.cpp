@@ -3,6 +3,7 @@
 #include "Utils/Math/FalcorMath.h"
 #include <math.h>
 #include <random>
+#include <Utils/StringUtils.h>
 
 
 #pragma region HELPER METHODS SECTION
@@ -37,7 +38,7 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
         mpCubeProgramVars["PerFrameCB"]["gSamples"] = jitterInternal;
-        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(textureVect[currLayer - 1]->getEnvSampler());
+        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(mpPointSampler);
     }
 
     rmcv::mat4 world = rmcv::translate(mpScene->getCamera()->getPosition());
@@ -55,7 +56,7 @@ void BRDF_Simulator::setEnvMapModelShaderVars() {
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
         mpCubeProgramVars["PerFrameCB"]["gSamples"] = jitterInternal;
-        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(textureVect[currLayer - 1]->getEnvSampler());
+        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(mpPointSampler);
     }
 
     rmcv::mat4 world = rmcv::translate(mpModelScene->getCamera()->getPosition());
@@ -318,13 +319,15 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
 
 }
 
-void BRDF_Simulator::loadModel(ResourceFormat fboFormat)
+bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
 {
     std::filesystem::path path;
     if (openFileDialog(Scene::getFileExtensionFilters(), path))
     {
         loadModelFromFile(path, fboFormat);
+        return true;
     }
+    return false;
 }
 
 //__________________________________________________________________________________________________________________________________
@@ -409,6 +412,44 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
     w.separator();
 
+    if (auto statsGroup = w.group("Statistics"))
+    {
+        const auto& s = mpScene->getSceneStats();
+        const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
+        std::ostringstream oss;
+        // Geometry stats.
+        oss << "Geometry stats:" << std::endl
+            << "  Mesh count: " << s.meshCount << std::endl
+            << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
+            << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
+            << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
+            << "  Transform matrix count: " << s.transformCount << std::endl
+            << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
+            << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
+            << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
+            << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
+            << std::endl;
+
+        // Environment map stats.
+        oss << "Environment map:" << std::endl;
+        auto mpEnvMap = textureVect[currLayer - 1];//mpCubeScene->getEnvMap();
+        if (mpEnvMap)
+        {
+            oss << "  Resolution: " << mpEnvMap->getEnvMap()->getWidth() << "x" << mpEnvMap->getEnvMap()->getHeight() << std::endl;
+        }
+        else
+        {
+            oss << "  N/A" << std::endl;
+        }
+
+        oss << std::endl;
+
+
+        if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
+
+        statsGroup.text(oss.str());
+
+    }
     w.separator();
     if (w.button("Draw To Textures")) {
         BRDF_Simulation = true;
@@ -441,9 +482,14 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
     if (w.button("View Model"))
     {
+        //if () {
         mObjectSimulation = true;
         mMicrofacetes = false;
-        loadModel(gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+        if (!loadModel(gpFramework->getTargetFbo()->getColorTexture(0)->getFormat())) {
+            mObjectSimulation = false;
+            mMicrofacetes = true;
+        }
+        //}
     }
 
 }
@@ -572,7 +618,7 @@ void BRDF_Simulator::jitterCamera() {
         this->BRDF_Simulation = false;
         this->mOrthoCam = false;
        // jitterInternal = jitterNum;
-        if (currLayerInternal > 1) {
+        if (currLayerInternal >= 1) {
             continous_simulation = true;
         }
             mpScene->getCamera()->setPosition(cameraPos);
@@ -636,19 +682,19 @@ void BRDF_Simulator::continousSimulation() {
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
     }
 
-    if (continous_simulation && currLayerInternal < 1) {
+    if (!continous_simulation && currLayerInternal < 1) {
         continous_simulation = false;
         BRDF_Simulation = true;
         mOrthoCam = true;
         jitterInternal = jitterNum;
         bouncesInternal = bounces;
         this->switchBool = false;
-        //updateEnvMapTexture(false, true, false, currLayerInternal);
+        updateEnvMapTexture(false, true, false, currLayerInternal);
+       // updateEnvMapTexture(false, false, true, currLayerInternal - 1);
         ////currLayerInternal = 2;
         //currLayer = 1;
         //currLayerTemp = 1;
         ////loadOrthoVisualizor(currLayerInternal);
-        //updateEnvMapTexture(false, false, true, currLayerInternal);
 
         //mpScene->getCamera()->setJitter(0, 0);
     }
@@ -716,6 +762,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 
     Sampler::Desc samplerDesc;
     samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+    samplerDesc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
     mpPointSampler = Sampler::create(samplerDesc);
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
     mpLinearSampler = Sampler::create(samplerDesc);
@@ -749,8 +796,8 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     else if (mpScene && !mObjectSimulation)
     {
         // change the simulation boolean to false.
-        rasterizeSurfaceView(pRenderContext);
         jitterCamera();
+        rasterizeSurfaceView(pRenderContext);
         if (continous_simulation && !contSwitchBool) {
             timer = 60;
             continousSimulation();
