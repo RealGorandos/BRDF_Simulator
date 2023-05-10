@@ -19,37 +19,37 @@ void findLines(const float3 pos, const float3 dir, const float3 v1, const float3
     //}
     if (dir.x > 0.f) {//This works
         if (pos.x < v2.x) {
-            firstLine = float4(v2.x, 1.f, v2.x, float(surfaceSize[0]) + 1);
+            firstLine = float4(v2.x, 1.f, v2.x, float(surfaceSize) + 1);
             // return true;
         }
         else if (pos.x == v2.x) {
-            firstLine = float4(v2.x + 1.f, 1.f, v2.x + 1.f, float(surfaceSize[0]) + 1);
+            firstLine = float4(v2.x + 1.f, 1.f, v2.x + 1.f, float(surfaceSize) + 1);
         }
     }
     else if (dir.x < 0.f) {
         if (pos.x > v1.x) {
-            firstLine = float4(v1.x, 1.f, v1.x, float(surfaceSize[0]) + 1);
+            firstLine = float4(v1.x, 1.f, v1.x, float(surfaceSize) + 1);
         }
         else if (pos.x == v1.x) {
-            firstLine = float4(v1.x - 1.f, 1.f, v1.x - 1.f, float(surfaceSize[0]) + 1);
+            firstLine = float4(v1.x - 1.f, 1.f, v1.x - 1.f, float(surfaceSize) + 1);
         }
     }
 
     if (dir.z > 0.f) {
         if (pos.z < v3.z) {
-            secondLine = float4(1.f, v3.z, float(surfaceSize[1]) + 1, v3.z);
+            secondLine = float4(1.f, v3.z, float(surfaceSize) + 1, v3.z);
         }
         else if (pos.z == v3.z) {
-            secondLine = float4(1.f, v3.z + 1.f, float(surfaceSize[1]) + 1, v3.z + 1.f);
+            secondLine = float4(1.f, v3.z + 1.f, float(surfaceSize) + 1, v3.z + 1.f);
         }
 
     }
     else if (dir.z < 0.f) {
         if (pos.z > v1.z) {
-            secondLine = float4(1.f, v1.z, float(surfaceSize[1]) + 1, v1.z);
+            secondLine = float4(1.f, v1.z, float(surfaceSize) + 1, v1.z);
         }
         else if (pos.z == v1.z) {
-            secondLine = float4(1.f, v1.z - 1.f, float(surfaceSize[1]) + 1, v1.z - 1.f);
+            secondLine = float4(1.f, v1.z - 1.f, float(surfaceSize) + 1, v1.z - 1.f);
         }
     }
 
@@ -191,14 +191,14 @@ void updateDir(inout float3  exp_point, inout float3  dir, float t, float3 v1, f
 
 }
 /*Checks if the point is still in the Surface*/
-bool isPointInCube(float3 exp_point, float3 quadDeter, int2 surfaceSize) {
+bool isPointInCube(float3 exp_point, float3 quadDeter, int surfaceSize) {
 
-    return (exp_point.x >= 1.f && exp_point.x <= surfaceSize[1] + 1.f) &&
-           (exp_point.z >= 1.f && exp_point.z <= surfaceSize[0] + 1.f) &&
+    return (exp_point.x >= 1.f && exp_point.x <= surfaceSize + 1.f) &&
+           (exp_point.z >= 1.f && exp_point.z <= surfaceSize + 1.f) &&
            (exp_point.y >= 0.f && exp_point.y <= 5.f) &&
 
-            (quadDeter.x >= 1.f && quadDeter.x <= surfaceSize[1] + 1.f) &&
-            (quadDeter.z >= 1.f && quadDeter.z <= surfaceSize[0] + 1.f) &&
+            (quadDeter.x >= 1.f && quadDeter.x <= surfaceSize + 1.f) &&
+            (quadDeter.z >= 1.f && quadDeter.z <= surfaceSize + 1.f) &&
             (quadDeter.y >= 0.f && quadDeter.y <= 5.f);
 
 }

@@ -13,7 +13,7 @@ cbuffer PerFrameCB : register(b0)
     RWTexture2D<uint> tex2D_uav;
     uniform float roughness;
     uniform int bounces;
-    uniform int2 surfaceSize;
+    uniform int surfaceSize;
     uniform float3 c_dir;
 };
 
@@ -56,7 +56,7 @@ void updateTexture(float3 posIn, float3 dirIn, bool upper, bool lower) {
     bool render = ray_march(pos, dir, hitCount, upper, lower);
 
 
-    float3 dirMirror = float3(dir.x, dir.y, -dir.z);
+    float3 dirMirror = float3(-dir.x, dir.y, dir.z);
 
     if (render) {
         float2 res = world_to_latlong_map(normalize(dir));

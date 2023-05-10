@@ -23,17 +23,10 @@ cbuffer PerFrameCB : register(b0)
     uniform bool startBrdf;
 
     uniform uint  gSamples;
-    //uniform Texture2DArray  texture2DList;
-    //EnvMap gEnvMap_0;
-    //EnvMap gEnvMap_1;
-    //EnvMap gEnvMap_2;
-    //EnvMap gEnvMap_3;
-    //EnvMap gEnvMap_4;
-    //EnvMap gEnvMap_5;
-    //EnvMap gEnvMap_6;
-    //EnvMap gEnvMap_7;
-    //EnvMap gEnvMap_8;
-    //EnvMap gEnvMap_9;
+
+    uniform float3 lightIntensity;
+    uniform float normalizing;
+
     RWTexture2D texture2d_0;
     RWTexture2D texture2d_1;
     RWTexture2D texture2d_2;
@@ -67,7 +60,6 @@ VSOut vsMain(VSIn vIn)
 
 float4 psMain(VSOut vsOut) : SV_TARGET
 {
-    //TODO: START With cook torrence
     if (startBrdf) {
         if (cookTorrence) {
             float3 color = cook_torrence_BRDF(vsOut.posW, vsOut.normalW);
@@ -78,6 +70,5 @@ float4 psMain(VSOut vsOut) : SV_TARGET
             return float4(color, 1.f);
         }
     } 
-return float4(normalize(vsOut.normalW), 1.f);
-//return float4(0.f, 0.f, 0.f, 1.f);
+return float4(0.f,0.f,0.f, 1.f);
 }

@@ -51,7 +51,7 @@ float3 cook_torrence_BRDF(float3 texPos, float3 norm) {
     float3 H = normalize(V + L);
     float distance = length(lightPosition - texPos);
     float attenuation = 1.0 / (distance * distance);
-    float3 lightColor = float3(300.0f);
+    float3 lightColor = float3(300.f);
     float3 radiance = lightColor * attenuation;
 
 
@@ -76,10 +76,10 @@ float3 cook_torrence_BRDF(float3 texPos, float3 norm) {
     float NdotL = max(dot(N, L), 0.0);
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     //TODO: SET AO TO BE ENTERED BY THE USER
-    float3 ambient = float3(0.03) * albedo * ao;
-    float3 color = ambient + Lo;
+   // float3 ambient = float3(0.03) * albedo * ao;
+    float3 color = Lo;
 
-    color = color / (color + float3(1.0));
-    color = pow(color, float3(1.0 / 2.2));
+    //color = color / (color + float3(1.0));
+    //color = pow(color, float3(1.0 / 2.2));
     return color;
 }

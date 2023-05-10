@@ -98,6 +98,8 @@ private:
 
     void setEnvMapModelShaderVars();
 
+    void createTextures();
+
     Sampler::SharedPtr mpPointSampler = nullptr;
     Sampler::SharedPtr mpLinearSampler = nullptr;
     Sampler::SharedPtr mpCubePointSampler = nullptr;
@@ -106,11 +108,11 @@ private:
     std::string mModelString;
 
     //Main scene PIPELINE
-    Scene::SharedPtr mpScene;
+    Scene::SharedPtr mpScene = nullptr;
     GraphicsProgram::SharedPtr mpProgram = nullptr;
     GraphicsVars::SharedPtr mpProgramVars = nullptr;
     GraphicsState::SharedPtr mpGraphicsState = nullptr;
-    SceneBuilder::SharedPtr mSceneBuilder;
+    SceneBuilder::SharedPtr mSceneBuilder = nullptr;
 
     //Model PIPELINE
     Scene::SharedPtr mpModelScene;
@@ -149,7 +151,8 @@ private:
     
 
     //Surface variables
-    Falcor::int2 planSize = Falcor::int2(60,60); //Surface Of Microfacets size
+    int planSize = 60; //Surface Of Microfacets size
+    int planSizeTemp = planSize;
     float roughness = 0.f;
 
     //Ortho Camera variables
@@ -190,7 +193,7 @@ private:
     bool mObjectSimulation = false;
 
     //BRDF method boolean
-    bool isCookTorrence = false;
+    bool isCookTorrence = true;
 
     //Our BRDF boolean
     bool isSimulation = false;
@@ -205,11 +208,16 @@ private:
     float3 mAlbedo = float3(0.24f, 0.24f ,0.24f);
     float ao = float(0.f);
 
-
+    //Env Map resolution
+    int envRes = 150;
+    int envResTemp = envRes;
 
     int layerCnt = 2;
     int timer = 300;
 
 
     std::string frames;
+
+    float3 lightIntensity = Falcor::float3(0.f);
+    float normalizing = 0.f;
 };
