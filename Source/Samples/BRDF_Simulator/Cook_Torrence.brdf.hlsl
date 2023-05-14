@@ -83,3 +83,66 @@ float3 cook_torrence_BRDF(float3 texPos, float3 norm) {
     //color = pow(color, float3(1.0 / 2.2));
     return color;
 }
+
+
+
+//float reitz_distribution_GGX(float3 N, float3 H, float a)
+//{
+//    float a2 = a * a;
+//    float NdotH = max(dot(N, H), 0.0);
+//    float NdotH2 = NdotH * NdotH;
+//
+//    float nom = a2;
+//    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+//    denom = PI * denom * denom;
+//
+//    return nom / denom;
+//}
+//
+//
+//float schlick_geometry_GGX(float3 N, float3 V, float k)
+//{
+//    float NdotV = max(dot(N, V), 0.0);
+//    float nom = NdotV;
+//    float denom = NdotV * (1.0 - k) + k;
+//
+//    return nom / denom;
+//}
+//
+//float smith_schlick_geometry(float3 N, float3 V, float3 L, float k)
+//{
+//    return schlick_geometry_GGX(N, V, k) * schlick_geometry_GGX(N, L, k);
+//}
+//
+//float3 schlick_frasnel(float3 N, float3 V, float3 F0)
+//{
+//    return F0 + (1.0 - F0) * pow(1.0 - dot(N, V), 5.0);
+//}
+//
+//
+//float3 render(float3 L, float3 N, float3 V, float distance) {
+//    float k = roughness * roughness / 2.; // -->>What is the iParameter0?
+//   // float3 envC = texture(skybox, L).rgb; // --> What is this?
+//    float3 k_d =  float3(1.f) - F; // -->>What is the iTexture0?
+//    float3 PLASTIC_SPECULAR_COLOR = albedo;
+//    k_d *= 1.0 - metallic;;
+//    float attenuation = 1.0 / (distance * distance);
+//    float3 lightColor = float3(5.f);
+//    float3 radiance = lightColor * attenuation;
+//
+//
+//    float3 H = normalize(L + V);
+//    float3 F = schlick_frasnel(N, V, PLASTIC_SPECULAR_COLOR);
+//    float D = reitz_distribution_GGX(N, H, roughness);
+//    float G = smith_schlick_geometry(N, V, H, k);
+//
+//
+//    float3 L_r = reflect(-V, N);
+//    float3 specular = F * D * G / (4. * dot(L, N) * dot(V, N));
+//    float3 diffuse = float3(k_d) * 1. / PI;
+//
+//
+//    //float distance = length(lightPosition - texPos);
+//
+//    return radiance * (diffuse + specular) * dot(V, N);//(diffuse + specular);
+//}

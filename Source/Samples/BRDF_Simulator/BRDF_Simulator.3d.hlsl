@@ -22,7 +22,7 @@ cbuffer PerFrameCB : register(b0)
 VSOut vsMain(VSIn vIn, out float2 fragCoord  : TEXCOORD0)
 {
 
-    vIn.pos.y = random(vIn.pos.xz) * (3 * roughness);
+    vIn.pos.y = random(vIn.pos.xz) * (10 * roughness);
     VSOut resVS = defaultVS(vIn);
     return resVS;
 }

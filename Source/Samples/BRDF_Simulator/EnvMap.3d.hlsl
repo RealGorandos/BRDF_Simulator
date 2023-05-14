@@ -23,7 +23,7 @@ cbuffer PerFrameCB
    // EnvMap gEnvMap;
     Texture2D tex2D_uav;
     SamplerState envSampler;
-
+    uniform float camRes;
 
 
 };
@@ -45,12 +45,17 @@ float4 psMain(VS_OUTPUT vsOut) : SV_TARGET
 {
 
         float2 uv = world_to_latlong_map(vsOut.dir);
-        float4 color = tex2D_uav.SampleLevel(envSampler, uv, 0.f);
+        float4 color = tex2D_uav.Sample(envSampler, uv);
         uint twidth;
         uint theight;
         tex2D_uav.GetDimensions(twidth, theight);
+
+        //float2 uv = world_to_latlong_map(dir);
+        //return gTexture.Sample(gSampler, uv);
+
+
         uint3 res = uint3(asuint(color.r), asuint(color.g), asuint(color.b));
-        uint samples = twidth * theight * gSamples;
+        uint samples = camRes   * gSamples;
         //float3 color = gEnvMap.eval(vsOut.dir);
 
           return float4(float3(res) / samples, 1.f);

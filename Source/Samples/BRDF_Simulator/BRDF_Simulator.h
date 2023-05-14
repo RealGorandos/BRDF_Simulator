@@ -46,6 +46,15 @@ public:
         Cook_Torrance
     };
 
+    enum class ProgramRes
+    {
+        _32x32,
+        _64x64,
+        _128x128,
+        _256x256,
+        _512x512
+    };
+
     void onLoad(RenderContext* pRenderContext) override;
     void onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo) override;
     void onResizeSwapChain(uint32_t width, uint32_t height) override;
@@ -148,8 +157,8 @@ private:
    //Dropdown lists
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
     BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::Cook_Torrance;
-    
-
+    BRDF_Simulator::ProgramRes mTexRes = BRDF_Simulator::ProgramRes::_64x64;
+    BRDF_Simulator::ProgramRes mSurfRes = BRDF_Simulator::ProgramRes::_64x64;
     //Surface variables
     int planSize = 60; //Surface Of Microfacets size
     int planSizeTemp = planSize;
@@ -161,10 +170,15 @@ private:
     bool mOrthoCam = false;
 
     //Simulation Variables
-    int jitterNum = 3;
+    unsigned long int seedIncEven = 1;
+    unsigned long int seedIncOdd = 1;
+    int maxJitter = 100;
+    int jitterNum = 2;
     int bounces = 0;
     int jitterInternal = 2;
+    int jitterInternalStatic = 2;
     int bouncesInternal = 2;
+    int bouncesInternalStatic = 2;
     bool switchBool = false;
 
     bool contSwitchBool = false;
@@ -179,7 +193,7 @@ private:
     float3 orthoCamPostion = float3(0.f, 0.f, 0.f);
     float3 QuadLookAt = float3(1.5f, 0.f, 1.5f);
     int degOfRotation = 15;
-    int maxLayer = 10;
+    int maxLayer = 15;
     float3 cameraPos = float3(0.f);
 
     //Layers variables
@@ -188,6 +202,7 @@ private:
     int currLayerInternal = 1;
     //Falcor::Texture::SharedPtr var = Falcor::Texture::create2D(150, 150, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
     std::vector<Falcor::EnvMap::SharedPtr> textureVect;
+    std::vector<Falcor::Sampler::SharedPtr> samplerVect;
     //Model view switching variables
     bool mMicrofacetes = true;
     bool mObjectSimulation = false;
@@ -209,7 +224,7 @@ private:
     float ao = float(0.f);
 
     //Env Map resolution
-    int envRes = 150;
+    int envRes = 64;
     int envResTemp = envRes;
 
     int layerCnt = 2;
@@ -220,4 +235,16 @@ private:
 
     float3 lightIntensity = Falcor::float3(0.f);
     float normalizing = 0.f;
+
+
+    bool runTest = false;
+
+    std::ostringstream modelOSS;
+    std::ostringstream surfaceOSS;
+    std::ostringstream textureOSS;
+    int updateOnce = 1;
+    int openOnce = 1;
+    int iterateOnce = 1;
+    int totallPassed = 0;
+
 };

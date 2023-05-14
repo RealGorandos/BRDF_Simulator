@@ -3,6 +3,7 @@
 #include "Utils/Math/FalcorMath.h"
 #include <math.h>
 #include <random>
+#include <chrono> 
 #include <Utils/StringUtils.h>
 
 
@@ -19,11 +20,12 @@ void BRDF_Simulator::setModelString(double loadTime)
     mModelString += std::to_string(mpScene->getMaterialCount()) + " materials, ";
 }
 /*Gets a random number*/
-float get_random()
+float get_random(unsigned long int jitterInternal)
 {
-
-    static std::default_random_engine e;
-    static std::uniform_real_distribution<> dis(-0.5f, 0.5f); // rage 0 - 1
+    //seed *= 10;
+    static std::default_random_engine e;// { static_cast<long unsigned int>(seed * 10)};
+    e.seed(jitterInternal);
+    static std::uniform_real_distribution<float> dis(-1.0f, 1.0f); // rage 0 - 1
     return dis(e);
 }
 /////______________________________________________________________________________________________________________
@@ -33,12 +35,12 @@ float get_random()
 /////////////___FILLING THE SHADERS VARIABLES SECTION__///////////////////////////////////
 void BRDF_Simulator::setEnvMapShaderVars() {
 
-    const auto& pEnvMap = mpCubeScene->getEnvMap();
+    const auto& pEnvMap = textureVect[currLayer - 1];
     mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpCubeProgramVars["PerFrameCB"]["gSamples"] = jitterInternal;
-        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(textureVect[currLayer - 1]->getEnvSampler());
+        mpCubeProgramVars["PerFrameCB"]["gSamples"] = maxJitter;//* bouncesInternal;
+        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
     }
 
     rmcv::mat4 world = rmcv::translate(mpScene->getCamera()->getPosition());
@@ -47,16 +49,17 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     mpCubeProgramVars["PerFrameCB"]["gScale"] = 1.f;
     mpCubeProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
     mpCubeProgramVars["PerFrameCB"]["gProjMat"] = mpCubeScene->getCamera()->getProjMatrix();
+    mpCubeProgramVars["PerFrameCB"]["camRes"] = float(planSize);
 }
 
 void BRDF_Simulator::setEnvMapModelShaderVars() {
 
-    const auto& pEnvMap = mpCubeScene->getEnvMap();
+    const auto& pEnvMap = textureVect[currLayer - 1];
     mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpCubeProgramVars["PerFrameCB"]["gSamples"] = jitterInternal;
-        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(textureVect[currLayer - 1]->getEnvSampler());
+        mpCubeProgramVars["PerFrameCB"]["gSamples"] = maxJitter;// *bouncesInternal;
+        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
     }
 
     rmcv::mat4 world = rmcv::translate(mpModelScene->getCamera()->getPosition());
@@ -76,12 +79,12 @@ void BRDF_Simulator::setOrthoVisualizorVars() {
 }
 
 void BRDF_Simulator::setSceneVars() {
-    mpProgramVars["PerFrameCB"]["BRDF_Simulation"] = BRDF_Simulation && switchBool;
+    mpProgramVars["PerFrameCB"]["BRDF_Simulation"] = BRDF_Simulation;//&& switchBool;
     mpProgramVars["PerFrameCB"]["roughness"] = roughness;
     mpProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
     mpProgramVars["PerFrameCB"]["bounces"] = bounces;
     mpProgramVars["PerFrameCB"]["c_dir"] = mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition();
-    const auto& pEnvMap = mpCubeScene->getEnvMap();
+    const auto& pEnvMap = textureVect[currLayer - 1];
     if (pEnvMap) {
         mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
     }
@@ -99,40 +102,41 @@ void BRDF_Simulator::setModelVars() {
     mpModelProgramVars["PerFrameCB"]["startBrdf"] = runSimulation;
     mpModelProgramVars["PerFrameCB"]["cookTorrence"] = isCookTorrence;
     mpModelProgramVars["PerFrameCB"]["mySimulation"] = isSimulation;
-    mpModelProgramVars["PerFrameCB"]["gSamples"] = jitterInternal;
+    mpModelProgramVars["PerFrameCB"]["gSamples"] = jitterInternalStatic;// *bouncesInternal;
 
+    mpModelProgramVars["PerFrameCB"]["camRes"] = float(planSize);
     
     //Passing textures
     //mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture
     mpModelProgramVars["PerFrameCB"]["texture2d_0"].setUav(textureVect[0]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
+    //mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
                                                                                         
     mpModelProgramVars["PerFrameCB"]["texture2d_1"].setUav(textureVect[1]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(textureVect[1]->getEnvSampler());
+    //mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(textureVect[1]->getEnvSampler());
                                                                                         
     mpModelProgramVars["PerFrameCB"]["texture2d_2"].setUav(textureVect[2]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(textureVect[2]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(textureVect[2]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_3"].setUav( textureVect[3]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(textureVect[3]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(textureVect[3]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_4"].setUav(textureVect[4]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(textureVect[4]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(textureVect[4]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_5"].setUav(textureVect[5]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(textureVect[5]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(textureVect[5]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_6"].setUav(textureVect[6]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(textureVect[6]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(textureVect[6]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_7"].setUav(textureVect[7]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(textureVect[7]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(textureVect[7]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_8"].setUav(textureVect[8]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(textureVect[8]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(textureVect[8]->getEnvSampler());
                                                                                       
     mpModelProgramVars["PerFrameCB"]["texture2d_9"].setUav(textureVect[9]->getEnvMap()->getUAV(0));
-    mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(textureVect[9]->getEnvSampler());
+   // mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(textureVect[9]->getEnvSampler());
     //pEnvMap->setShaderData(mpVars["PerFrameCB"]["gEnvMap"]);
 
    // const auto& pEnvMap = mpCubeScene->getEnvMap();
@@ -156,15 +160,32 @@ void BRDF_Simulator::setModelVars() {
 /*Load surface*/
 void BRDF_Simulator::renderSurface() {
 
-
+    //switch (mSurfRes) {
+    //case  BRDF_Simulator::ProgramRes::_64x64:
+    //    planSize = 64;
+    //    break;
+    //case  BRDF_Simulator::ProgramRes::_128x128:
+    //    planSize = 128;
+    //    break;
+    //case  BRDF_Simulator::ProgramRes::_256x256:
+    //    planSize = 256;
+    //    break;
+    //case  BRDF_Simulator::ProgramRes::_512x512:
+    //    planSize = 512;
+    //    break;
+    //default:
+    //    FALCOR_UNREACHABLE();
+    //}
+    
     mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
     SceneBuilder::Node N;
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
+    Falcor::TriangleMesh::SharedPtr TriangleMesh = TriangleMesh::createQuad(float2(1.f));
     for (int row = 0; row < planSize; row++) {
         for (int col = 0; col < planSize; col++) {
             N.transform[0][3] = float(col) + 1.5;
             N.transform[2][3] = float(row) + 1.5;
-            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(N), mSceneBuilder->addTriangleMesh(TriangleMesh::createQuad(float2(1.f)), Material));
+            mSceneBuilder->addMeshInstance(mSceneBuilder->addNode(N), mSceneBuilder->addTriangleMesh(TriangleMesh, Material));
         }
     }
     mpScene = mSceneBuilder->getScene();
@@ -182,7 +203,7 @@ void BRDF_Simulator::renderSurface() {
     mpGraphicsState->setProgram(mpProgram);
 
     setCamController();
-    mpScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
+    //mpScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
 }
 
 
@@ -195,15 +216,17 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
 
     mpDebuggingQuadSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
     SceneBuilder::Node N;
-    float x =  (currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f;
+    float deg =  -(currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f - M_PI;
     //float x = (currLayer * 90.f / float(maxLayer)) * 3.14f / 180.f;
-    N.transform[0][3] = float(planSize + 2) / 2.f;
-    N.transform[1][3] = float(sin(x)) * 60.f;
-    N.transform[2][3] = float(cos(x));// *20.f;// *60.f;
-    std::cout << "Value of z: " << N.transform[2][3] << std::endl;
+    const float z = 50.f;
+    const float y = 0.f;
+    N.transform[0][3] = float(planSize + 2) / 2.f; // x
+    N.transform[1][3] = z * float(sin(deg)); //z * float(sin(deg)) ;// float(cos(deg)) * y - float(sin(deg)) * z;   // y
+    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2) / 2.f; // z* float(cos(deg)) + 20.f; //float(sin(deg)) * y + float(cos(deg)) * z;    // z
+   
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
     float width = float(planSize) ;
-    float height = float(planSize) / 2.f;
+    float height = float(planSize);
     Falcor::TriangleMesh::SharedPtr quadTemp = TriangleMesh::createQuad(float2(width, height));
     orthCamWidth = width / 2.f;
     orthCamHeight = height / 2.f;
@@ -236,8 +259,8 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
  
     Falcor::Transform quadTranform = Falcor::Transform::Transform();
 
-    quadTranform.setRotationEuler(float3(1.570800, 0.f, 0.f ));
-
+    quadTranform.setRotationEuler(float3(-deg - M_PI_2, 0.f, 0.f ));
+    /*
     N.transform = N.transform * rmcv::mat4_cast(quadTranform.getRotation());
     if (currLayer <= 0) {
         quadTranform.lookAt(float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]), float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f), float3(0.f, 1.f, 0.f));
@@ -245,7 +268,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     else {
 
     quadTranform.lookAt(float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]), float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f), float3(0.f,0.f,1.f));
-    }
+    }*/
     N.transform = N.transform * rmcv::mat4_cast(quadTranform.getRotation());
     quadTranform.setRotationEulerDeg(rotateQuad);
 
@@ -279,7 +302,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     // Depth test
     mpDebuggingQuadGraphicsState->setProgram(mpDebuggingQuadProgram);
     setCamController();
-    mpDebuggingQuadScene->getMaterialSystem()->setDefaultTextureSampler(mpLinearSampler);
+  //  mpDebuggingQuadScene->getMaterialSystem()->setDefaultTextureSampler(mpLinearSampler);
 }
 
 //________________________________________________________________________________________________________________________________
@@ -323,9 +346,10 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
 
 bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
 {
-    std::filesystem::path path;
+    std::filesystem::path path;// = "TestScenes/Lucy.obj";
     if (openFileDialog(Scene::getFileExtensionFilters(), path))
     {
+        
         loadModelFromFile(path, fboFormat);
         return true;
     }
@@ -388,6 +412,55 @@ void BRDF_Simulator::setEnvMapPipeline() {
 //Load Surface Pipeline GUI
 void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
+
+
+
+
+
+    {
+        auto surfaceSettings = w.group("Surface Settings");
+
+        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 60, 120, 2);
+        if (surfaceSettings.button("Apply Size")) {
+            planSize = planSizeTemp;
+            renderSurface();
+            loadOrthoVisualizor(currLayer);
+
+        }
+        surfaceSettings.tooltip("Click \"Apply Size\" to apply the surface size changes.", true);
+
+        surfaceSettings.var(" Surface Roughness", roughness, 0.f, 1.f);
+
+
+    }
+
+    Gui::DropdownList textureResolutions;
+    textureResolutions.push_back({ (uint32_t)BRDF_Simulator::ProgramRes::_32x32, "32x32" });
+    textureResolutions.push_back({ (uint32_t)BRDF_Simulator::ProgramRes::_64x64, "64x64" });
+    textureResolutions.push_back({ (uint32_t)BRDF_Simulator::ProgramRes::_128x128, "128x128" });
+    textureResolutions.push_back({ (uint32_t)BRDF_Simulator::ProgramRes::_256x256, "256x256" });
+    textureResolutions.push_back({ (uint32_t)BRDF_Simulator::ProgramRes::_512x512, "512x512" });
+
+    {
+        auto textureSettings = w.group("Texture Settings");
+
+
+
+        if (textureSettings.dropdown("Texture Resolution", textureResolutions, (uint32_t&)mTexRes)) createTextures();
+    }
+
+    {
+        auto simulationSettings = w.group("Simulation Settings");
+
+
+        simulationSettings.var("Camera Jitter", jitterNum, 1, maxJitter);
+
+        simulationSettings.var("Ray Bounces", bounces, 1);
+
+        simulationSettings.var("Current Layer", currLayer, 1, maxLayer);
+        simulationSettings.tooltip("Enter a value instead of dragging.", true);
+    }
+
     Gui::DropdownList cameraDropdown;
     cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::FirstPerson, "First-Person" });
     cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::Orbiter, "Orbiter" });
@@ -395,110 +468,76 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
 
     w.separator();
-
-
-
     {
-        auto surfaceSettings = w.group("Surface Settings");
-
-        surfaceSettings.var(" Surface Roughness", roughness, 0.f, 1.f);
-        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 60, 120, 2);
-        if (surfaceSettings.button("Update Surface")) {
-            planSize = planSizeTemp;
-            renderSurface();
-            loadOrthoVisualizor(currLayer);
-
-        }
-    }
-    {
-        auto textureSettings = w.group("Texture Settings");
-        textureSettings.var(" Texture Resolution NxN", envResTemp, 150, 300, 1);
-        if (textureSettings.button("Update Texture")) {
-            envRes = envResTemp;
-            createTextures();
-
-        }
-    }
-
-    {
-        auto simulationSettings = w.group("Simulation Settings");
-
-
-        simulationSettings.var("Camera Jitter", jitterNum, 2);
-
-        simulationSettings.var("Ray Bounces", bounces, 1);
-
-        simulationSettings.var("Current Layer", currLayer, 1, maxLayer);
-    }
+ 
+       // Gui::Window x(w.gui(), "Statistics", { 400, 300 }, { 0, 100 });
 
 
 
-    w.separator();
+        if (auto statsGroup = w.group("Statistics"))
+        {
+            const auto& s = mpScene->getSceneStats();
+            const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
+            std::ostringstream oss;
 
-    if (auto statsGroup = w.group("Statistics"))
-    {
-        const auto& s = mpScene->getSceneStats();
-        const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
-        std::ostringstream oss;
-
-        // Frames stats.
-        oss << "Frame Stats: " << frames << std::endl
-        << std::endl;
-
-        // Geometry stats.
-        oss << "Geometry stats:" << std::endl
-            << "  Mesh count: " << s.meshCount << std::endl
-            << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
-            << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
-            << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
-            << "  Transform matrix count: " << s.transformCount << std::endl
-            << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
-            << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
-            << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
-            << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
+            // Frames stats.
+            oss << "Frame Stats: " << frames << std::endl
             << std::endl;
 
-        // Environment map stats.
-        oss << "Environment map:" << std::endl;
-        auto mpEnvMap = textureVect[currLayer - 1];//mpCubeScene->getEnvMap();
-        if (mpEnvMap)
-        {
-            oss << "  Resolution: " << textureVect[currLayer - 1]->getEnvMap()->getWidth() << "x" << textureVect[currLayer - 1]->getEnvMap()->getHeight() << std::endl;
+            // Geometry stats.
+            oss << "Geometry stats:" << std::endl
+                << "  Mesh count: " << s.meshCount << std::endl
+                << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
+                << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
+                << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
+                << "  Transform matrix count: " << s.transformCount << std::endl
+                << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
+                << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
+                << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
+                << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
+                << std::endl;
+
+            // Environment map stats.
+            oss << "Environment map:" << std::endl;
+            auto mpEnvMap = textureVect[currLayer - 1];//mpCubeScene->getEnvMap();
+            if (mpEnvMap)
+            {
+                oss << "  Resolution: " << textureVect[currLayer - 1]->getEnvMap()->getWidth() << "x" << textureVect[currLayer - 1]->getEnvMap()->getHeight() << std::endl;
+            }
+            else
+            {
+                oss << "  N/A" << std::endl;
+            }
+
+            oss << std::endl;
+
+            oss << "Rays Stats:" << std::endl;
+            oss << "  Rays Count: " << float(planSize) * float(planSize) * jitterNum * currLayer * 2  << std::endl;
+            if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
+
+            statsGroup.text(oss.str());
+
         }
-        else
-        {
-            oss << "  N/A" << std::endl;
-        }
-
-        oss << std::endl;
-
-
-        if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
-
-        statsGroup.text(oss.str());
-
     }
     w.separator();
     if (w.button("Draw To Textures")) {
+        createTextures();
+        seedIncEven = 1;
+        seedIncOdd = 1;
         BRDF_Simulation = true;
         mOrthoCam = true;
         currLayerInternal = currLayer;
         jitterInternal = jitterNum;
+        jitterInternalStatic = jitterNum;
         bouncesInternal = bounces;
         mpScene->getCamera()->setPosition(cameraPos);
         mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
 
     }
-    if (w.button("Clear Textures")) {
+    if (w.button("Clear Textures", true)) { createTextures();}
 
-        createTextures();
-    }
-
-
-    w.separator();
-
-    if (w.button("View Model"))
+    if (w.button("View Model", true))
     {
         //if () {
         mObjectSimulation = true;
@@ -508,6 +547,200 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
             mMicrofacetes = true;
         }
         //}
+    }
+
+
+    if (w.button("Run Test", true)) {
+        runTest = true;
+        
+    }
+
+    if (runTest) {
+        Gui::Window x(w, "Test Window", { 400, 500 }, { 100, 100 });
+        const auto& s = mpScene->getSceneStats();
+        const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
+
+        //int totallPassed = 0;
+        if (auto texResTest = x.group("Texture Resolution Test:", true))
+        {
+            if (iterateOnce == 1) {
+                
+                int passedCnt = 0;
+                int currRes = 32;
+                //oss << " " << std::endl;
+                for (auto resType : textureResolutions) {
+                    (uint32_t&)mTexRes = resType.value;
+                    createTextures();
+                    textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
+                    for (int i = 0; i < 15; i++) {
+                        int width = textureVect[i]->getEnvMap()->getWidth();
+                        int height = textureVect[i]->getEnvMap()->getHeight();
+                        textureOSS << "\t\tTesting if resolution of layer  " << std::to_string(i + 1) << " is " << std::to_string(currRes) << "x" << std::to_string(currRes) << "    ---->   ";
+                        if (width == currRes && height == currRes) {
+                            textureOSS << "PASSED" << std::endl;
+                            passedCnt++;
+                        }
+                        else {
+                            textureOSS << "FAILED" << std::endl;
+                        }
+
+                    }
+                    currRes *= 2;
+                    textureOSS << std::endl;
+                }
+                totallPassed += passedCnt;
+                textureOSS << "\tResult: " <<  std::endl;
+                textureOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(15 * textureResolutions.size()) << " Passed" << std::endl;
+                iterateOnce--;
+            }
+            texResTest.text(textureOSS.str());
+        }
+        //oss.clear();
+        if (auto LoadModelTest = x.group("Load Model Test:", true))
+        {
+            if (openOnce == 1) {
+                int passedCnt = 0;
+              
+                Falcor::Scene::SceneStats a;
+                Falcor::Scene::SceneStats b;
+                modelOSS << "\tTest loading a Model with a lot of triangles: " << std::endl;
+           
+                loadModelFromFile("TestScenes/Lucy.obj" , gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+                modelOSS << "\t\t\tModel path: Falcor/media/TestScenes/Lucy.obj" << std::endl;
+                modelOSS << "\t\t\t\tOpening Model --> ";
+                if (mpModelScene) {
+                    modelOSS << " PASSED" << std::endl;
+                        a = mpModelScene->getSceneStats();
+                        passedCnt++;
+                }
+                else {
+                    modelOSS << " FAILED" << std::endl;
+                }
+           
+                modelOSS << std::endl;
+
+                modelOSS << "\tTest loading a model with fewer triangles: " << std::endl;
+                mpModelScene = nullptr;
+                
+                loadModelFromFile("TestScenes/Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+                modelOSS << "\t\t\tModel path: Falcor/media/TestScenes/Bunny.obj" << std::endl;
+                modelOSS << "\t\t\t\tOpening Model --> ";
+                if (mpModelScene) {
+                    modelOSS << " PASSED" << std::endl;
+                    b = mpModelScene->getSceneStats();
+                    passedCnt++;
+                }
+                else {
+                    modelOSS << " FAILED" << std::endl;
+                }
+
+                mpModelScene = nullptr;
+
+                modelOSS << std::endl;
+
+                modelOSS << "\tTesting the two models: " << std::endl;
+                modelOSS << "\t\tLucy has more triangles than Bunny --> " ;
+                if (a.uniqueTriangleCount > b.uniqueTriangleCount) {
+                    modelOSS << "PASSED" << std::endl;
+                    passedCnt++;
+                }
+                else {
+                    modelOSS << "FAILED" << std::endl;
+                }
+
+                modelOSS << "\t\tLucy has more vertices than Bunny --> ";
+                if (a.uniqueVertexCount > b.uniqueVertexCount) {
+                    modelOSS << "PASSED" << std::endl;
+                    passedCnt++;
+                }
+                else {
+                    modelOSS << "FAILED" << std::endl;
+                }
+                openOnce--;
+                totallPassed += passedCnt;
+                modelOSS << std::endl;
+                modelOSS << "\tResult: " << std::endl;
+                modelOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(4) << " Passed" << std::endl;
+            }
+                LoadModelTest.text(modelOSS.str());
+        }
+
+        if (auto UpdateSurfaceTest = x.group("Update Surface Test:", true))
+        {
+            if (updateOnce == 1) {
+                int temp = planSize;
+                Falcor::Scene::SceneStats a;
+                Falcor::Scene::SceneStats b;
+                planSize = 60;
+                int passedCnt = 0;
+
+                surfaceOSS << "\tTest loading minimum surface size -->";
+                renderSurface();
+                a = mpScene->getSceneStats();
+                int expectedTriangles = 60 * 60 * 2;
+                if (a.uniqueTriangleCount == expectedTriangles) {
+                    surfaceOSS << "PASSED" << std::endl;
+                    passedCnt++;
+                }
+                else {
+                    surfaceOSS << "FAILD" << std::endl;
+                }
+
+                planSize = 120;
+
+                surfaceOSS << "\tTest loading maximum surface size -->";
+                renderSurface();
+                b = mpScene->getSceneStats();
+                expectedTriangles = 120 * 120 * 2;
+                if (b.uniqueTriangleCount == expectedTriangles) {
+                    surfaceOSS << "PASSED" << std::endl;
+                    passedCnt++;
+                }
+                else {
+                    surfaceOSS << "FAILD" << std::endl;
+                }
+
+                surfaceOSS << std::endl;
+                surfaceOSS << "\tTesting the two surfaces: " << std::endl;
+                surfaceOSS << "\t\tMaximum surface has more triangles than minimum -->";
+                if (b.uniqueTriangleCount > a.uniqueTriangleCount) {
+                    surfaceOSS << "PASSED" << std::endl;
+                    passedCnt++;
+                }
+                else {
+                    surfaceOSS << "FAILD" << std::endl;
+                }
+
+  
+                surfaceOSS << "\t\tMaximum surface has more vertices than minimum -->";
+                if (b.uniqueVertexCount > a.uniqueVertexCount) {
+                    surfaceOSS << "PASSED" << std::endl;
+                    passedCnt++;
+                }
+                else {
+                    surfaceOSS << "FAILD" << std::endl;
+                }
+
+                planSize = temp;
+                renderSurface();
+
+                updateOnce--;
+                totallPassed += passedCnt;
+                surfaceOSS << std::endl;
+                surfaceOSS << "\tResult: " << std::endl;
+                surfaceOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(4) << " Passed" << std::endl;
+            }
+            UpdateSurfaceTest.text(surfaceOSS.str());
+        }
+        x.separator();
+
+        x.text( "\tFinal Result:\n");
+        x.text("\t\t" + std::to_string(totallPassed) + " out of " + std::to_string(83) + " Passed \n" );
+        //oss.clear();
+        if (x.button("Exit")) {
+            runTest = false;
+        }
+
     }
 
 }
@@ -584,17 +817,6 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
             << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
             << std::endl;
 
-        // Environment map stats.
-        oss << "Environment map:" << std::endl;
-        auto mpEnvMap = textureVect[currLayer - 1];//mpCubeScene->getEnvMap();
-        if (mpEnvMap)
-        {
-            oss << "  Resolution: " << mpEnvMap->getEnvMap()->getWidth() << "x" << mpEnvMap->getEnvMap()->getHeight() << std::endl;
-        }
-        else
-        {
-            oss << "  N/A" << std::endl;
-        }
 
         oss << std::endl;
 
@@ -644,16 +866,10 @@ void BRDF_Simulator::rasterizeModelView(RenderContext* pRenderContext) {
 void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
     if (currLayerTemp != currLayer) {
         currLayerTemp = currLayer;
-        updateEnvMapTexture(false, false, true, currLayer - 1);
         loadOrthoVisualizor(currLayer);
     }
 
-    //if (clearTexture) {
-    //    clearTexture = !clearTexture;
-    //    updateEnvMapTexture(true, currLayer);
 
-    //   // setEnvMapPipeline();
-    //}
 
     mpScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
     mpDebuggingQuadScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
@@ -664,6 +880,7 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
     setSceneVars();
 
     setOrthoVisualizorVars();
+    //std::cout << "We are here!!!" << e
     setEnvMapShaderVars();
 
     if (mOrthoCam) {
@@ -683,13 +900,14 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
 
 #pragma region CAMERA JITTERING
 void BRDF_Simulator::jitterCamera() {
-    if (jitterInternal <= 1 && BRDF_Simulation) {
-        mpScene->getCamera()->setJitter(0, 0);
+    if (jitterInternal <= 0 && BRDF_Simulation) {
+
         //this->switchBool = false;
         this->BRDF_Simulation = false;
-        this->mOrthoCam = false;
+        this->mOrthoCam = true;
        // jitterInternal = jitterNum;
         if (currLayerInternal >= 1) {
+            currLayerInternal -= 1;
             continous_simulation = true;
         }
             mpScene->getCamera()->setPosition(cameraPos);
@@ -698,77 +916,62 @@ void BRDF_Simulator::jitterCamera() {
         //}
     }
 
-    if (jitterInternal > 1 && BRDF_Simulation && !switchBool) {
+    if (jitterInternal > 0 && BRDF_Simulation) {
 
-        mpScene->getCamera()->setPosition(cameraPos);
-        mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
-        mpScene->getCamera()->setUpVector(float3(0, 1, 0));
 
-        float rand01 = get_random();
-        float rand02 = get_random();
+        seedIncOdd += 2;
+        seedIncEven += 3;
 
-        //mpScene->getCamera()->setJitter(rand01, rand02);
+        float rand01 = get_random(jitterInternal + seedIncEven + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
+        float rand02 = get_random(jitterInternal + seedIncOdd + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
+        
         mpScene->getCamera()->setPosition(float3(cameraPos.x + rand01, cameraPos.y + rand02, cameraPos.z));
         mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
-        switchBool = true;
+       // switchBool = true;
         this->mOrthoCam = true;
-
+        continous_simulation = false;
         jitterInternal--;
     }
-    else if (BRDF_Simulation && switchBool) {
 
-        this->mOrthoCam = true;
-        switchBool = false;
-        mpScene->getCamera()->setPosition(float3(0.f, 0.f, 0.f));
-        mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
-        mpScene->getCamera()->setUpVector(float3(0, 1, 0));
-
-    }
 }
 #pragma endregion CAMERA JITTERING
 
 #pragma region CONTINOUS SIMULATION
 void BRDF_Simulator::continousSimulation() {
     if (!BRDF_Simulation && continous_simulation && currLayerInternal >= 1 && currLayerInternal <= maxLayer) {
+        seedIncEven = 1;
+        seedIncOdd = 1;
         continous_simulation = false;
         BRDF_Simulation = true;
         mOrthoCam = true;
-        currLayerInternal = currLayer;
+        currLayer = currLayerInternal;
         jitterInternal = jitterNum;
         bouncesInternal = bounces;
-        currLayerInternal -= 1;
 
-        if (currLayerInternal - 1 > -1) {
-            //mpCubeScene->getMaterialSystem()->setDefaultTextureSampler(mpCubePointSampler);
-            updateEnvMapTexture(false, true, false, currLayerInternal);
-            updateEnvMapTexture(false, false, true, currLayerInternal - 1);
-            currLayer = currLayerInternal;
-            currLayerTemp = currLayerInternal;
-            loadOrthoVisualizor(currLayerInternal);
-            contSwitchBool = true;
-        }
+        currLayer = currLayerInternal;
+        currLayerTemp = currLayerInternal;
+        loadOrthoVisualizor(currLayerInternal);
+        
+
         mpScene->getCamera()->setPosition(cameraPos);
         mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
     }
 
-    if (!continous_simulation && currLayerInternal < 1) {
+    if (continous_simulation && currLayerInternal <= 0) {
         continous_simulation = false;
-        BRDF_Simulation = true;
-        mOrthoCam = true;
+        BRDF_Simulation = false;
+        mOrthoCam = false;
         jitterInternal = jitterNum;
         bouncesInternal = bounces;
-        this->switchBool = false;
-        updateEnvMapTexture(false, true, false, currLayerInternal);
-        updateEnvMapTexture(false, false, true, currLayerInternal);
-       // updateEnvMapTexture(false, false, true, currLayerInternal - 1);
-        ////currLayerInternal = 2;
-        //currLayer = 1;
-        //currLayerTemp = 1;
-        ////loadOrthoVisualizor(currLayerInternal);
-
-        //mpScene->getCamera()->setJitter(0, 0);
+       // currLayerInternal = 1;
+        //currLayer = 1;// currLayerInternal;
+        //currLayerTemp = currLayer;
+       // loadOrthoVisualizor(currLayer);
+        mpScene->getCamera()->setPosition(cameraPos);
+        mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
+        mpScene->getCamera()->setUpVector(float3(0, 1, 0));
     }
 }
 
@@ -776,11 +979,39 @@ void BRDF_Simulator::continousSimulation() {
 
 void BRDF_Simulator::createTextures() {
     textureVect.clear();
+    samplerVect.clear();
+    switch (mTexRes) {
+    case  BRDF_Simulator::ProgramRes::_32x32:
+        envRes = 32;
+        break;
+    case  BRDF_Simulator::ProgramRes::_64x64:
+        envRes = 64;
+        break;
+    case  BRDF_Simulator::ProgramRes::_128x128:
+        envRes = 128;
+        break;
+    case  BRDF_Simulator::ProgramRes::_256x256:
+        envRes = 256;
+        break;
+    case  BRDF_Simulator::ProgramRes::_512x512:
+        envRes = 512;
+        break;
+    default:
+        FALCOR_UNREACHABLE();
+    }
+
     for (int i = 0; i < maxLayer; i++) {
         Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
         pTex->setName("Texture Layer " + std::to_string(i));
         Falcor::EnvMap::SharedPtr pEnv = EnvMap::create(pTex);
         textureVect.push_back(pEnv);
+
+        Sampler::Desc samplerDesc;
+        samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+        samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
+        Falcor::Sampler::SharedPtr pSampler = Sampler::create(samplerDesc);
+
+        samplerVect.push_back(pSampler);
     }
 
 }
@@ -816,6 +1047,9 @@ void BRDF_Simulator::updateEnvMapTexture(bool clear, bool update, bool get, int 
 void BRDF_Simulator::onGuiRender(Gui* pGui)
 {
     Gui::Window w(pGui, "Menu", { 400, 300 }, { 0, 100 });
+   // Gui::MainMenu m(pGui);
+   // Gui::MainMenu n(pGui);
+   // Gui::Menu n(pGui, "Something");
 
 
    // w.separator();
@@ -844,8 +1078,8 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     mpDepthTestDS = DepthStencilState::create(dsDesc);
 
     Sampler::Desc samplerDesc;
-    samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
-    samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
+    samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
+    samplerDesc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
     mpPointSampler = Sampler::create(samplerDesc);
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
     mpLinearSampler = Sampler::create(samplerDesc);
@@ -876,19 +1110,10 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
         // change the simulation boolean to false.
         jitterCamera();
         rasterizeSurfaceView(pRenderContext);
-        if (continous_simulation && !contSwitchBool) {
-            timer = 60;
-            continousSimulation();
-        }
-        else if (continous_simulation && contSwitchBool) {
-            timer--;
-            if (timer <= 0) {
-            contSwitchBool = false;
-            mpScene->getCamera()->setPosition(float3(0.f, 0.f, 0.f));
-            mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
-            mpScene->getCamera()->setUpVector(float3(0, 1, 0));
-            }
-        }
+        continousSimulation();
+
+        
+
 
     }
 
@@ -909,7 +1134,7 @@ bool BRDF_Simulator::onKeyEvent(const KeyboardEvent& keyEvent)
             return true;
         }
     }
-    else if (mpScene && !mObjectSimulation) {
+    else if (mpScene && !mObjectSimulation && !BRDF_Simulation) {
         if (mOrthoCam && (keyEvent.key == Input::Key::W || keyEvent.key == Input::Key::S)) return false;
         if (mpScene && mpScene->onKeyEvent(keyEvent)) return true;
 
@@ -931,7 +1156,7 @@ bool BRDF_Simulator::onMouseEvent(const MouseEvent& mouseEvent)
     if (mpModelScene && !mMicrofacetes) {
         mpModelScene->onMouseEvent(mouseEvent);
     }
-    else if (mpScene && !mObjectSimulation) {
+    else if (mpScene && !mObjectSimulation && !BRDF_Simulation && !continous_simulation) {
         if (mOrthoCam && mouseEvent.type == MouseEvent::Type::Wheel) return false;
         return mpScene->onMouseEvent(mouseEvent);
     }

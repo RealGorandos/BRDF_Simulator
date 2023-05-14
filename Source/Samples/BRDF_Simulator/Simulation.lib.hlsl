@@ -4,13 +4,13 @@
 /*________Helper Methods for finding Quads and Lines_______________________*/
 
 void fillVertices(const int x, const int y, inout float3 v1, inout float3 v2, inout float3 v3, inout float3 v4) {
-    v1 = float3(float(x), float(random(float2(x, y)) * (float(3) * roughness)), float(y));
+    v1 = float3(float(x), float(random(float2(x, y)) * (float(10) * roughness)), float(y));
 
-    v2 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y)) * (float(3) * roughness)), float(y));
+    v2 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y)) * (float(10) * roughness)), float(y));
 
-    v3 = float3(float(x), float(random(float2(x, y + 1.f)) * (float(3) * roughness)), float(y) + 1.f);
+    v3 = float3(float(x), float(random(float2(x, y + 1.f)) * (float(10) * roughness)), float(y) + 1.f);
 
-    v4 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y + 1.f)) * (float(3) * roughness)), float(y) + 1.f);
+    v4 = float3(float(x) + 1.f, float(random(float2(x + 1.f, y + 1.f)) * (float(10) * roughness)), float(y) + 1.f);
 }
 
 void findLines(const float3 pos, const float3 dir, const float3 v1, const float3 v2, const float3 v3, const float3 v4, inout float4 firstLine, inout float4 secondLine) {

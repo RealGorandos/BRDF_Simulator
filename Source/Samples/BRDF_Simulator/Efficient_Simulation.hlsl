@@ -17,7 +17,7 @@ float3 resultColor(float3 N, float3 V,float u, float v, float3 texPos, RWTexture
     float4 color = currTexture[uint2(u * twidth, v * theight)].xxxx;
     
     uint3 res = uint3(asuint(color.r), asuint(color.g), asuint(color.b));
-    uint samples = twidth * theight * gSamples;
+    uint samples = camRes * camRes  * gSamples;
 
     float NdotL = max(dot(N, R), 0.0);
 
@@ -25,8 +25,8 @@ float3 resultColor(float3 N, float3 V,float u, float v, float3 texPos, RWTexture
 
     float3 colorRes = (albedo / PI + normColor) * radiance * NdotL;
 
-    //colorRes = colorRes / (colorRes + float3(1.0));
-    //colorRes = pow(colorRes, float3(1.0 / 2.2));
+    colorRes = colorRes / (colorRes + float3(1.0));
+    colorRes = pow(colorRes, float3(1.0 / 2.2));
 
     return colorRes;
 }

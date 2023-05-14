@@ -26,7 +26,7 @@ cbuffer PerFrameCB : register(b0)
 
     uniform float3 lightIntensity;
     uniform float normalizing;
-
+    uniform float camRes;
     RWTexture2D texture2d_0;
     RWTexture2D texture2d_1;
     RWTexture2D texture2d_2;
@@ -62,7 +62,13 @@ float4 psMain(VSOut vsOut) : SV_TARGET
 {
     if (startBrdf) {
         if (cookTorrence) {
+            //float3 lightPosition = float3(1.f);
+            //float3 L = normalize(lightPosition - vsOut.posW);
             float3 color = cook_torrence_BRDF(vsOut.posW, vsOut.normalW);
+            //float3 N = normalize(vsOut.normalW);
+            //float3 V = normalize(camPos - vsOut.posW);
+            //float distance = length(lightPosition - vsOut.posW);
+            //float3 color = render(L,N, V, distance);
             return float4(color, 1.f);
         }
         else if (mySimulation) {
