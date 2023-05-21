@@ -54,8 +54,6 @@ void updateTexture(float3 posIn, float3 dirIn, bool upper, bool lower) {
 
     //Apply Ray marching
     bool render = ray_march(pos, dir, hitCount, upper, lower);
-
-
     float3 dirMirror = float3(-dir.x, dir.y, dir.z);
 
     if (render) {
@@ -88,14 +86,15 @@ float4 psMain(VSOut vsOut) : SV_TARGET
 
 
 
-        float3 c_dir_normalized = normalize(c_dir);
-        float3 preRef = normalize(reflect(c_dir_normalized, normalize(vsOut.normalW)));
+        float3 V = normalize(c_dir);
+        float3 N = normalize(vsOut.normalW);
+        float3 preRef = normalize(reflect(V, N));
 
         //Checking if there is a Ray-Triangle Intersection in the current block
          upper = rayTriangleIntersect(vsOut.posW, preRef, v1, v2, v3, t, u, v);
          lower = rayTriangleIntersect(vsOut.posW, preRef, v4, v3, v2, t0, u, v);
+         updateTexture(vsOut.posW, preRef, upper, lower);
 
-        updateTexture(vsOut.posW, preRef, upper, lower);
         }
     return float4(vsOut.normalW, 1.f);
 }

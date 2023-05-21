@@ -203,6 +203,9 @@ private:
     //Falcor::Texture::SharedPtr var = Falcor::Texture::create2D(150, 150, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
     std::vector<Falcor::EnvMap::SharedPtr> textureVect;
     std::vector<Falcor::Sampler::SharedPtr> samplerVect;
+
+    Falcor::Texture::SharedPtr arr[15];
+    Falcor::Sampler::SharedPtr arrSamp[15];
     //Model view switching variables
     bool mMicrofacetes = true;
     bool mObjectSimulation = false;
@@ -247,4 +250,5 @@ private:
     int iterateOnce = 1;
     int totallPassed = 0;
 
+    float kEpsilon = 0.000001f;
 };

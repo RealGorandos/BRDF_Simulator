@@ -25,7 +25,7 @@ float get_random(unsigned long int jitterInternal)
     //seed *= 10;
     static std::default_random_engine e;// { static_cast<long unsigned int>(seed * 10)};
     e.seed(jitterInternal);
-    static std::uniform_real_distribution<float> dis(-1.0f, 1.0f); // rage 0 - 1
+    static std::uniform_real_distribution<float> dis(-0.5f, 0.5f); // rage 0 - 1
     return dis(e);
 }
 /////______________________________________________________________________________________________________________
@@ -83,11 +83,12 @@ void BRDF_Simulator::setSceneVars() {
     mpProgramVars["PerFrameCB"]["roughness"] = roughness;
     mpProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
     mpProgramVars["PerFrameCB"]["bounces"] = bounces;
-    mpProgramVars["PerFrameCB"]["c_dir"] = mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition();
-    const auto& pEnvMap = textureVect[currLayer - 1];
-    if (pEnvMap) {
-        mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(pEnvMap->getEnvMap()->getUAV(0));
-    }
+
+    mpProgramVars["PerFrameCB"]["c_dir"] = normalize(mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition()); //mpScene->getCamera()->getData().cameraW;
+    //const auto& pEnvMap = textureVect[currLayer - 1];
+    //if (pEnvMap) {
+        mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(textureVect[currLayer - 1]->getEnvMap()->getUAV(0));
+    //}
 }
 
 void BRDF_Simulator::setModelVars() {
@@ -108,45 +109,66 @@ void BRDF_Simulator::setModelVars() {
     
     //Passing textures
     //mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture
-    mpModelProgramVars["PerFrameCB"]["texture2d_0"].setUav(textureVect[0]->getEnvMap()->getUAV(0));
-    //mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_0"].setTexture(textureVect[0]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
                                                                                         
-    mpModelProgramVars["PerFrameCB"]["texture2d_1"].setUav(textureVect[1]->getEnvMap()->getUAV(0));
-    //mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(textureVect[1]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_1"].setTexture(textureVect[1]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_1"].setSampler(textureVect[1]->getEnvSampler());
                                                                                         
-    mpModelProgramVars["PerFrameCB"]["texture2d_2"].setUav(textureVect[2]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(textureVect[2]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_2"].setTexture(textureVect[2]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_2"].setSampler(textureVect[2]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_3"].setUav( textureVect[3]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(textureVect[3]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_3"].setTexture( textureVect[3]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_3"].setSampler(textureVect[3]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_4"].setUav(textureVect[4]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(textureVect[4]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_4"].setTexture(textureVect[4]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_4"].setSampler(textureVect[4]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_5"].setUav(textureVect[5]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(textureVect[5]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_5"].setTexture(textureVect[5]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_5"].setSampler(textureVect[5]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_6"].setUav(textureVect[6]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(textureVect[6]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_6"].setTexture(textureVect[6]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_6"].setSampler(textureVect[6]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_7"].setUav(textureVect[7]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(textureVect[7]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_7"].setTexture(textureVect[7]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_7"].setSampler(textureVect[7]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_8"].setUav(textureVect[8]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(textureVect[8]->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_8"].setTexture(textureVect[8]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_8"].setSampler(textureVect[8]->getEnvSampler());
                                                                                       
-    mpModelProgramVars["PerFrameCB"]["texture2d_9"].setUav(textureVect[9]->getEnvMap()->getUAV(0));
-   // mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(textureVect[9]->getEnvSampler());
-    //pEnvMap->setShaderData(mpVars["PerFrameCB"]["gEnvMap"]);
+    mpModelProgramVars["PerFrameCB"]["texture2d_9"].setTexture(textureVect[9]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_9"].setSampler(textureVect[9]->getEnvSampler());
 
-   // const auto& pEnvMap = mpCubeScene->getEnvMap();
-   // mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
-    //if (pEnvMap) {
-    //    mpModelProgramVars["texture2d_0"].setTexture(pEnvMap->getEnvMap());
-    //   // mpModelProgramVars["gSamples"] = jitterInternal;
-    //    mpModelProgramVars["gSampler"].setSampler(pEnvMap->getEnvSampler());
+    mpModelProgramVars["PerFrameCB"]["texture2d_10"].setTexture(textureVect[10]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_10"].setSampler(textureVect[10]->getEnvSampler());
+
+    mpModelProgramVars["PerFrameCB"]["texture2d_11"].setTexture(textureVect[11]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_11"].setSampler(textureVect[11]->getEnvSampler());
+
+    mpModelProgramVars["PerFrameCB"]["texture2d_12"].setTexture(textureVect[12]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_12"].setSampler(textureVect[12]->getEnvSampler());
+
+    mpModelProgramVars["PerFrameCB"]["texture2d_13"].setTexture(textureVect[13]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_13"].setSampler(textureVect[13]->getEnvSampler());
+
+    mpModelProgramVars["PerFrameCB"]["texture2d_14"].setTexture(textureVect[14]->getEnvMap());
+    mpModelProgramVars["PerFrameCB"]["gSampler_14"].setSampler(textureVect[14]->getEnvSampler());
+
+
+    //std::vector<Falcor::Texture::SharedPtr>  vect2;
+    //for (auto i : textureVect) {
+    //    vect2.push_back(i->getEnvMap());
     //}
+    //mpModelProgramVars->setParameterBlock("gTextures", vect2)
+        //setParameterBlock("gTextures", textureVect.data(), t);
+    //int const n = textureVect.size();
 
+    //for (int i = 0; i < 15; i++) {
+    //    arr[i] = textureVect[i]->getEnvMap();
+    //    arrSamp[i] = textureVect[i]->getEnvSampler();
+    //}
+    //mpModelProgramVars["PerFrameCB"]["texture2d"] = arr;
+    //mpModelProgramVars["PerFrameCB"]["gSampler"] = arrSamp;
 
 }
 
@@ -222,7 +244,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     const float y = 0.f;
     N.transform[0][3] = float(planSize + 2) / 2.f; // x
     N.transform[1][3] = z * float(sin(deg)); //z * float(sin(deg)) ;// float(cos(deg)) * y - float(sin(deg)) * z;   // y
-    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2) / 2.f; // z* float(cos(deg)) + 20.f; //float(sin(deg)) * y + float(cos(deg)) * z;    // z
+    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2)/2; // z* float(cos(deg)) + 20.f; //float(sin(deg)) * y + float(cos(deg)) * z;    // z
    
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
     float width = float(planSize) ;
@@ -420,7 +442,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     {
         auto surfaceSettings = w.group("Surface Settings");
 
-        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 60, 120, 2);
+        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 60, 240, 2);
         if (surfaceSettings.button("Apply Size")) {
             planSize = planSizeTemp;
             renderSurface();
@@ -453,7 +475,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         auto simulationSettings = w.group("Simulation Settings");
 
 
-        simulationSettings.var("Camera Jitter", jitterNum, 1, maxJitter);
+        simulationSettings.var("Camera Jitter", jitterNum, 1);
 
         simulationSettings.var("Ray Bounces", bounces, 1);
 
@@ -570,7 +592,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                 //oss << " " << std::endl;
                 for (auto resType : textureResolutions) {
                     (uint32_t&)mTexRes = resType.value;
-                    createTextures();
+                    createTextures();//Change it to updateTextures()
                     textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
                     for (int i = 0; i < 15; i++) {
                         int width = textureVect[i]->getEnvMap()->getWidth();
@@ -885,11 +907,11 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
 
     if (mOrthoCam) {
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::ortho(float(-orthCamWidth), float(orthCamWidth), float(-orthCamHeight), float(orthCamHeight), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
-        mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::Back);
+        mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::None);
     }
     else {
         mpScene->getCamera()->setProjectionMatrix(Falcor::rmcv::perspective(Falcor::focalLengthToFovY(mpScene->getCamera()->getFocalLength(), mpScene->getCamera()->getFrameHeight()), mpScene->getCamera()->getFrameWidth() / mpScene->getCamera()->getFrameHeight(), mpScene->getCamera()->getNearPlane(), mpScene->getCamera()->getFarPlane()));
-        mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::Back);
+        mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::None);
     }
 
     mpDebuggingQuadScene->rasterize(pRenderContext, mpDebuggingQuadGraphicsState.get(), mpDebuggingQuadProgramVars.get(), mpDebuggingQuadWireframeRS, mpDebuggingQuadWireframeRS);
@@ -910,6 +932,7 @@ void BRDF_Simulator::jitterCamera() {
             currLayerInternal -= 1;
             continous_simulation = true;
         }
+           // mpScene->getCamera()->setJitter(0.f, 0.f);
             mpScene->getCamera()->setPosition(cameraPos);
             mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
             mpScene->getCamera()->setUpVector(float3(0, 1, 0));
@@ -919,15 +942,29 @@ void BRDF_Simulator::jitterCamera() {
     if (jitterInternal > 0 && BRDF_Simulation) {
 
 
+
         seedIncOdd += 2;
         seedIncEven += 3;
 
         float rand01 = get_random(jitterInternal + seedIncEven + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
         float rand02 = get_random(jitterInternal + seedIncOdd + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
-        
-        mpScene->getCamera()->setPosition(float3(cameraPos.x + rand01, cameraPos.y + rand02, cameraPos.z));
-        mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
+
+        if (currLayer == 15) {
+            mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 + kEpsilon, cameraPos[1] , cameraPos[2] + rand02 + kEpsilon));
+            mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f + rand01, 0.f, float(planSize + 2) / 2.f) + rand02);
+        }
+        else {
+            mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 + kEpsilon, cameraPos[1] + rand02 + kEpsilon, cameraPos[2]));
+            mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f + rand01, 0.f + rand02, float(planSize + 2) / 2.f));
+        }
+
+
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
+       // mpScene->getCamera()->setJitter(rand01, rand02);
+        
+        float3 dor = mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition();
+        float3 d = normalize(dor);
+        std::cout << d.x << " " << d.y << "  " << d.z << std::endl;
        // switchBool = true;
         this->mOrthoCam = true;
         continous_simulation = false;
@@ -1090,6 +1127,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     renderSurface();
     loadOrthoVisualizor(currLayer);
     setEnvMapPipeline();
+    mpScene->setCameraSpeed(20.f);
 }
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)

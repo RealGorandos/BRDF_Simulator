@@ -383,6 +383,6 @@ bool ray_march(inout float3 rayOrigin, inout float3 rayDir, inout int hitCount, 
     rayOrigin = exp_point;
     rayDir = dir;
     hitCount = hits;
-    bool defected = dot(float3(0.f, -1.f, 0.f), rayDir) > 0.3f;
-    return !isPointInCube(rayOrigin, quadDeter, surfaceSize) && hitCount >= 0 && !defected  ;
+    bool defected = dot(float3(0.f, -1.f, 0.f), rayDir) > 0.1f;
+    return !isPointInCube(rayOrigin, quadDeter, surfaceSize) && hitCount >= 0 && !defected;
 }
