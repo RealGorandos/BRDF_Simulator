@@ -240,7 +240,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     SceneBuilder::Node N;
     float deg =  -(currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f - M_PI;
     //float x = (currLayer * 90.f / float(maxLayer)) * 3.14f / 180.f;
-    const float z = 50.f;
+    const float z = float(planSize + 2) / 2 + 10.f;
     const float y = 0.f;
     N.transform[0][3] = float(planSize + 2) / 2.f; // x
     N.transform[1][3] = z * float(sin(deg)); //z * float(sin(deg)) ;// float(cos(deg)) * y - float(sin(deg)) * z;   // y
@@ -252,10 +252,10 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     Falcor::TriangleMesh::SharedPtr quadTemp = TriangleMesh::createQuad(float2(width, height));
     orthCamWidth = width / 2.f;
     orthCamHeight = height / 2.f;
-    quadTemp->addVertex( float3(-(0.5f * width), 50, -(0.5f * height)), float3(0.f, 0.f, 0.f), float2( 0.f, 0.f ));
-    quadTemp->addVertex({ (0.5f * width), 50, -(0.5f * height) }, float3(0.f, 0.f, 0.f), { 1.f, 0.f });
-    quadTemp->addVertex({ -(0.5f * width), 50,  (0.5f * height) }, float3(0.f, 0.f, 0.f), { 0.f, 1.f });
-    quadTemp->addVertex({ (0.5f * width), 50,  (0.5f * height) }, float3(0.f, 0.f, 0.f), { 1.f, 1.f });
+    quadTemp->addVertex( float3(-(0.5f * width), width, -(0.5f * height)), float3(0.f, 0.f, 0.f), float2( 0.f, 0.f ));
+    quadTemp->addVertex({ (0.5f * width), width, -(0.5f * height) }, float3(0.f, 0.f, 0.f), { 1.f, 0.f });
+    quadTemp->addVertex({ -(0.5f * width), width,  (0.5f * height) }, float3(0.f, 0.f, 0.f), { 0.f, 1.f });
+    quadTemp->addVertex({ (0.5f * width), width,  (0.5f * height) }, float3(0.f, 0.f, 0.f), { 1.f, 1.f });
 
     Falcor::TriangleMesh::IndexList indices = quadTemp->getIndices();
 
@@ -442,7 +442,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     {
         auto surfaceSettings = w.group("Surface Settings");
 
-        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 60, 240, 2);
+        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 120, 512, 2);
         if (surfaceSettings.button("Apply Size")) {
             planSize = planSizeTemp;
             renderSurface();

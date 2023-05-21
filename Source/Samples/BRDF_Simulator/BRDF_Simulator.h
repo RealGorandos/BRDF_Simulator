@@ -160,7 +160,7 @@ private:
     BRDF_Simulator::ProgramRes mTexRes = BRDF_Simulator::ProgramRes::_64x64;
     BRDF_Simulator::ProgramRes mSurfRes = BRDF_Simulator::ProgramRes::_64x64;
     //Surface variables
-    int planSize = 60; //Surface Of Microfacets size
+    int planSize = 512; //Surface Of Microfacets size
     int planSizeTemp = planSize;
     float roughness = 0.f;
 
