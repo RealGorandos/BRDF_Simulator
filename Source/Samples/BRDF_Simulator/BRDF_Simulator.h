@@ -34,11 +34,6 @@ class BRDF_Simulator : public IRenderer
 {
 public:
 
-    struct BRDF_Object {
-        Falcor::float3 position;
-        std::string materialName;
-        Falcor::ShadingModel shadingModel;
-    };
 
     enum class BRDF_Type
     {
@@ -66,14 +61,12 @@ private:
     //Loading model from a file
     bool loadModel(ResourceFormat fboFormat);
     void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat);
-    void envMapConvert(Falcor::EnvMap& envMap, int currLayer);
     //Render the microfacts surface
     void renderSurface();
 
     //Camera functions
     void resetCamera();
     void setCamController();
-    void setModelString(double loadTime);
 
     //Render the enviroment map and setup the pipeline
     void setEnvMapPipeline();

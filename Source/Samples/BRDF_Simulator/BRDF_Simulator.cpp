@@ -8,38 +8,27 @@
 
 
 #pragma region HELPER METHODS SECTION
-///////////////////_____________HELPER METHODS SECTION__________________/////////////////
 /*Printing data in the window*/
-void BRDF_Simulator::setModelString(double loadTime)
-{
-    FALCOR_ASSERT(mpScene != nullptr);
 
-    mModelString = "Loading took " + std::to_string(loadTime) + " seconds.\n";
-    mModelString += std::to_string(mpScene->getMeshCount()) + " meshes, ";
-    mModelString += std::to_string(mpScene->getGeometryInstanceCount()) + " instances, ";
-    mModelString += std::to_string(mpScene->getMaterialCount()) + " materials, ";
-}
 /*Gets a random number*/
 float get_random(unsigned long int jitterInternal)
 {
     //seed *= 10;
-    static std::default_random_engine e;// { static_cast<long unsigned int>(seed * 10)};
+    static std::default_random_engine e;
     e.seed(jitterInternal);
-    static std::uniform_real_distribution<float> dis(-0.5f, 0.5f); // rage 0 - 1
+    static std::uniform_real_distribution<float> dis(-0.5f, 0.5f);
     return dis(e);
 }
-/////______________________________________________________________________________________________________________
 #pragma endregion HELPER METHODS
 
 #pragma region SHADER VARS FILLING
-/////////////___FILLING THE SHADERS VARIABLES SECTION__///////////////////////////////////
 void BRDF_Simulator::setEnvMapShaderVars() {
 
     const auto& pEnvMap = textureVect[currLayer - 1];
     mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpCubeProgramVars["PerFrameCB"]["gSamples"] = maxJitter;//* bouncesInternal;
+        mpCubeProgramVars["PerFrameCB"]["gSamples"] = maxJitter;
         mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
     }
 
@@ -79,16 +68,15 @@ void BRDF_Simulator::setOrthoVisualizorVars() {
 }
 
 void BRDF_Simulator::setSceneVars() {
-    mpProgramVars["PerFrameCB"]["BRDF_Simulation"] = BRDF_Simulation;//&& switchBool;
+    mpProgramVars["PerFrameCB"]["BRDF_Simulation"] = BRDF_Simulation;
     mpProgramVars["PerFrameCB"]["roughness"] = roughness;
     mpProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
     mpProgramVars["PerFrameCB"]["bounces"] = bounces;
 
-    mpProgramVars["PerFrameCB"]["c_dir"] = normalize(mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition()); //mpScene->getCamera()->getData().cameraW;
-    //const auto& pEnvMap = textureVect[currLayer - 1];
-    //if (pEnvMap) {
+    mpProgramVars["PerFrameCB"]["c_dir"] = normalize(mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition());
+
         mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(textureVect[currLayer - 1]->getEnvMap()->getUAV(0));
-    //}
+ 
 }
 
 void BRDF_Simulator::setModelVars() {
@@ -103,12 +91,11 @@ void BRDF_Simulator::setModelVars() {
     mpModelProgramVars["PerFrameCB"]["startBrdf"] = runSimulation;
     mpModelProgramVars["PerFrameCB"]["cookTorrence"] = isCookTorrence;
     mpModelProgramVars["PerFrameCB"]["mySimulation"] = isSimulation;
-    mpModelProgramVars["PerFrameCB"]["gSamples"] = jitterInternalStatic;// *bouncesInternal;
+    mpModelProgramVars["PerFrameCB"]["gSamples"] = jitterInternalStatic;
 
     mpModelProgramVars["PerFrameCB"]["camRes"] = float(planSize);
     
     //Passing textures
-    //mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture
     mpModelProgramVars["PerFrameCB"]["texture2d_0"].setTexture(textureVect[0]->getEnvMap());
     mpModelProgramVars["PerFrameCB"]["gSampler_0"].setSampler(textureVect[0]->getEnvSampler());
                                                                                         
@@ -155,49 +142,19 @@ void BRDF_Simulator::setModelVars() {
     mpModelProgramVars["PerFrameCB"]["gSampler_14"].setSampler(textureVect[14]->getEnvSampler());
 
 
-    //std::vector<Falcor::Texture::SharedPtr>  vect2;
-    //for (auto i : textureVect) {
-    //    vect2.push_back(i->getEnvMap());
-    //}
-    //mpModelProgramVars->setParameterBlock("gTextures", vect2)
-        //setParameterBlock("gTextures", textureVect.data(), t);
-    //int const n = textureVect.size();
 
-    //for (int i = 0; i < 15; i++) {
-    //    arr[i] = textureVect[i]->getEnvMap();
-    //    arrSamp[i] = textureVect[i]->getEnvSampler();
-    //}
-    //mpModelProgramVars["PerFrameCB"]["texture2d"] = arr;
-    //mpModelProgramVars["PerFrameCB"]["gSampler"] = arrSamp;
 
 }
 
 
-//_______________________________________________________________________________________________________________________________________________________________________________________________________
 
 #pragma endregion SHADER VARS FILLING
 
 #pragma region RENEDER TO THE SURFACE SCENE SECTION
-/////////////____________RENDER INTO THE SCENE SECTION__________________________/////////////
 /*Load surface*/
 void BRDF_Simulator::renderSurface() {
 
-    //switch (mSurfRes) {
-    //case  BRDF_Simulator::ProgramRes::_64x64:
-    //    planSize = 64;
-    //    break;
-    //case  BRDF_Simulator::ProgramRes::_128x128:
-    //    planSize = 128;
-    //    break;
-    //case  BRDF_Simulator::ProgramRes::_256x256:
-    //    planSize = 256;
-    //    break;
-    //case  BRDF_Simulator::ProgramRes::_512x512:
-    //    planSize = 512;
-    //    break;
-    //default:
-    //    FALCOR_UNREACHABLE();
-    //}
+
     
     mSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
     SceneBuilder::Node N;
@@ -225,7 +182,6 @@ void BRDF_Simulator::renderSurface() {
     mpGraphicsState->setProgram(mpProgram);
 
     setCamController();
-    //mpScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
 }
 
 
@@ -239,12 +195,11 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     mpDebuggingQuadSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
     SceneBuilder::Node N;
     float deg =  -(currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f - M_PI;
-    //float x = (currLayer * 90.f / float(maxLayer)) * 3.14f / 180.f;
     const float z = float(planSize + 2) / 2 + 10.f;
     const float y = 0.f;
     N.transform[0][3] = float(planSize + 2) / 2.f; // x
-    N.transform[1][3] = z * float(sin(deg)); //z * float(sin(deg)) ;// float(cos(deg)) * y - float(sin(deg)) * z;   // y
-    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2)/2; // z* float(cos(deg)) + 20.f; //float(sin(deg)) * y + float(cos(deg)) * z;    // z
+    N.transform[1][3] = z * float(sin(deg));  // y
+    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2)/2;  // z
    
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
     float width = float(planSize) ;
@@ -282,15 +237,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     Falcor::Transform quadTranform = Falcor::Transform::Transform();
 
     quadTranform.setRotationEuler(float3(-deg - M_PI_2, 0.f, 0.f ));
-    /*
-    N.transform = N.transform * rmcv::mat4_cast(quadTranform.getRotation());
-    if (currLayer <= 0) {
-        quadTranform.lookAt(float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]), float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f), float3(0.f, 1.f, 0.f));
-    }
-    else {
 
-    quadTranform.lookAt(float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]), float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f), float3(0.f,0.f,1.f));
-    }*/
     N.transform = N.transform * rmcv::mat4_cast(quadTranform.getRotation());
     quadTranform.setRotationEulerDeg(rotateQuad);
 
@@ -324,14 +271,11 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     // Depth test
     mpDebuggingQuadGraphicsState->setProgram(mpDebuggingQuadProgram);
     setCamController();
-  //  mpDebuggingQuadScene->getMaterialSystem()->setDefaultTextureSampler(mpLinearSampler);
 }
 
-//________________________________________________________________________________________________________________________________
 #pragma endregion RENEDER TO THE SURFACE SCENE SECTION
 
 #pragma region LOAD FROM A FILE TO THE MODEL SCENE SECTION
-//////////////////_______________LOADING MODEL FROM A FILE TO THE MODEL SCENE_______________/////////////////////////////////////
 void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat)
 {
 
@@ -368,7 +312,7 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
 
 bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
 {
-    std::filesystem::path path;// = "TestScenes/Lucy.obj";
+    std::filesystem::path path;
     if (openFileDialog(Scene::getFileExtensionFilters(), path))
     {
         
@@ -378,7 +322,6 @@ bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
     return false;
 }
 
-//__________________________________________________________________________________________________________________________________
 
 #pragma endregion LOAD FROM A FILE TO THE MODEL SCENE SECTION
 
@@ -416,7 +359,6 @@ void BRDF_Simulator::setEnvMapPipeline() {
     samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
     samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
     mpCubePointSampler = Sampler::create(samplerDesc);
-    // std::filesystem::path path;
 
     auto pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
     pTex->setName("Enviroment Map");
@@ -429,7 +371,6 @@ void BRDF_Simulator::setEnvMapPipeline() {
 #pragma endregion SET ENVMAP PIPELINE
 
 #pragma region GUI RENDERING
-//////////////////////////____________GUI RENDERING SECTION_______________///////
 
 //Load Surface Pipeline GUI
 void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
@@ -492,7 +433,6 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     w.separator();
     {
  
-       // Gui::Window x(w.gui(), "Statistics", { 400, 300 }, { 0, 100 });
 
 
 
@@ -521,7 +461,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
             // Environment map stats.
             oss << "Environment map:" << std::endl;
-            auto mpEnvMap = textureVect[currLayer - 1];//mpCubeScene->getEnvMap();
+            auto mpEnvMap = textureVect[currLayer - 1];
             if (mpEnvMap)
             {
                 oss << "  Resolution: " << textureVect[currLayer - 1]->getEnvMap()->getWidth() << "x" << textureVect[currLayer - 1]->getEnvMap()->getHeight() << std::endl;
@@ -565,14 +505,13 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
     if (w.button("View Model", true))
     {
-        //if () {
         mObjectSimulation = true;
         mMicrofacetes = false;
         if (!loadModel(gpFramework->getTargetFbo()->getColorTexture(0)->getFormat())) {
             mObjectSimulation = false;
             mMicrofacetes = true;
         }
-        //}
+        
     }
 
 
@@ -586,17 +525,14 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         const auto& s = mpScene->getSceneStats();
         const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
 
-        //int totallPassed = 0;
         if (auto texResTest = x.group("Texture Resolution Test:", true))
         {
             if (iterateOnce == 1) {
                 
                 int passedCnt = 0;
                 int currRes = 32;
-                //oss << " " << std::endl;
                 for (auto resType : textureResolutions) {
                     (uint32_t&)mTexRes = resType.value;
-                    createTextures();//Change it to updateTextures()
                     textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
                     for (int i = 0; i < 15; i++) {
                         int width = textureVect[i]->getEnvMap()->getWidth();
@@ -621,7 +557,6 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
             }
             texResTest.text(textureOSS.str());
         }
-        //oss.clear();
         if (auto LoadModelTest = x.group("Load Model Test:", true))
         {
             if (openOnce == 1) {
@@ -691,78 +626,10 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                 LoadModelTest.text(modelOSS.str());
         }
 
-        if (auto UpdateSurfaceTest = x.group("Update Surface Test:", true))
-        {
-            if (updateOnce == 1) {
-                int temp = planSize;
-                Falcor::Scene::SceneStats a;
-                Falcor::Scene::SceneStats b;
-                planSize = 60;
-                int passedCnt = 0;
-
-                surfaceOSS << "\tTest loading minimum surface size -->";
-                renderSurface();
-                a = mpScene->getSceneStats();
-                int expectedTriangles = 60 * 60 * 2;
-                if (a.uniqueTriangleCount == expectedTriangles) {
-                    surfaceOSS << "PASSED" << std::endl;
-                    passedCnt++;
-                }
-                else {
-                    surfaceOSS << "FAILD" << std::endl;
-                }
-
-                planSize = 120;
-
-                surfaceOSS << "\tTest loading maximum surface size -->";
-                renderSurface();
-                b = mpScene->getSceneStats();
-                expectedTriangles = 120 * 120 * 2;
-                if (b.uniqueTriangleCount == expectedTriangles) {
-                    surfaceOSS << "PASSED" << std::endl;
-                    passedCnt++;
-                }
-                else {
-                    surfaceOSS << "FAILD" << std::endl;
-                }
-
-                surfaceOSS << std::endl;
-                surfaceOSS << "\tTesting the two surfaces: " << std::endl;
-                surfaceOSS << "\t\tMaximum surface has more triangles than minimum -->";
-                if (b.uniqueTriangleCount > a.uniqueTriangleCount) {
-                    surfaceOSS << "PASSED" << std::endl;
-                    passedCnt++;
-                }
-                else {
-                    surfaceOSS << "FAILD" << std::endl;
-                }
-
-  
-                surfaceOSS << "\t\tMaximum surface has more vertices than minimum -->";
-                if (b.uniqueVertexCount > a.uniqueVertexCount) {
-                    surfaceOSS << "PASSED" << std::endl;
-                    passedCnt++;
-                }
-                else {
-                    surfaceOSS << "FAILD" << std::endl;
-                }
-
-                planSize = temp;
-                renderSurface();
-
-                updateOnce--;
-                totallPassed += passedCnt;
-                surfaceOSS << std::endl;
-                surfaceOSS << "\tResult: " << std::endl;
-                surfaceOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(4) << " Passed" << std::endl;
-            }
-            UpdateSurfaceTest.text(surfaceOSS.str());
-        }
         x.separator();
 
         x.text( "\tFinal Result:\n");
-        x.text("\t\t" + std::to_string(totallPassed) + " out of " + std::to_string(83) + " Passed \n" );
-        //oss.clear();
+        x.text("\t\t" + std::to_string(totallPassed) + " out of " + std::to_string(79) + " Passed \n" );
         if (x.button("Exit")) {
             runTest = false;
         }
@@ -809,7 +676,6 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
             brdf_settings.var("Metallic", metallic, 0.f, 1.f);
             brdf_settings.var("Roughness", mRoughness, 0.f, 1.f);
             brdf_settings.var("Albedo", mAlbedo, 0.f, 1.f);
-          //  brdf_settings.var("ao", ao, 0.f, 1.f);
         }
 
         if (isSimulation) {
@@ -881,14 +747,10 @@ void BRDF_Simulator::rasterizeModelView(RenderContext* pRenderContext) {
     mpModelScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
     mpModelGraphicsState->setDepthStencilState(mpDepthTestDS);
     setModelVars();
-   // setEnvMapModelShaderVars();
     mpModelScene->rasterize(pRenderContext, mpModelGraphicsState.get(), mpModelProgramVars.get(), RasterizerState::CullMode::None);
-   // mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
 }
 
-//void BRDF_Simulator::envMapConvert(Falcor::EnvMap& envMap, int currLayer) {
-//    textureVect[currLayer] = envMap;
-//}
+
 void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
     if (currLayerTemp != currLayer) {
         currLayerTemp = currLayer;
@@ -906,7 +768,6 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
     setSceneVars();
 
     setOrthoVisualizorVars();
-    //std::cout << "We are here!!!" << e
     setEnvMapShaderVars();
 
     if (mOrthoCam) {
@@ -928,19 +789,16 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
 void BRDF_Simulator::jitterCamera() {
     if (jitterInternal <= 0 && BRDF_Simulation) {
 
-        //this->switchBool = false;
         this->BRDF_Simulation = false;
         this->mOrthoCam = true;
-       // jitterInternal = jitterNum;
         if (currLayerInternal >= 1) {
             currLayerInternal -= 1;
             continous_simulation = true;
         }
-           // mpScene->getCamera()->setJitter(0.f, 0.f);
             mpScene->getCamera()->setPosition(cameraPos);
             mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
             mpScene->getCamera()->setUpVector(float3(0, 1, 0));
-        //}
+        
     }
 
     if (jitterInternal > 0 && BRDF_Simulation) {
@@ -952,7 +810,6 @@ void BRDF_Simulator::jitterCamera() {
 
         float rand01 = get_random(jitterInternal + seedIncEven + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
         float rand02 = get_random(jitterInternal + seedIncOdd + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
-        std::cout << rand01 << " " << rand02 << " " << std::endl;
        if (currLayer == 15) {
             mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 , cameraPos[1] , cameraPos[2] + rand02));
             mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f + rand01, 0.f , float(planSize + 2) / 2.f) + rand02);
@@ -968,12 +825,8 @@ void BRDF_Simulator::jitterCamera() {
 
 
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
-       // mpScene->getCamera()->setJitter(rand01, rand02);
         
-        float3 dor = mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition();
-        float3 d = normalize(dor);
-        std::cout << d.x << " " << d.y << "  " << d.z << std::endl;
-       // switchBool = true;
+
         this->mOrthoCam = true;
         continous_simulation = false;
         jitterInternal--;
@@ -1010,10 +863,7 @@ void BRDF_Simulator::continousSimulation() {
         mOrthoCam = false;
         jitterInternal = jitterNum;
         bouncesInternal = bounces;
-       // currLayerInternal = 1;
-        //currLayer = 1;// currLayerInternal;
-        //currLayerTemp = currLayer;
-       // loadOrthoVisualizor(currLayer);
+
         mpScene->getCamera()->setPosition(cameraPos);
         mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
@@ -1062,23 +912,19 @@ void BRDF_Simulator::createTextures() {
 }
 
 void BRDF_Simulator::updateEnvMapTexture(bool clear, bool update, bool get, int currLayer) {
-    // = textureVect[currLayer - 1];
     if (clear) {
         Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
         pTex->setName("Texture Layer " + std::to_string(currLayer - 1));
         textureVect[currLayer - 1] = EnvMap::create(pTex);
         mpCubeScene->setEnvMap(EnvMap::create(textureVect[currLayer - 1]->getEnvMap()));
-       // mpCubeScene->getMaterialSystem()->setDefaultTextureSampler(mpCubePointSampler);
     }
     else if (update) {
-       // Falcor::EnvMap::SharedPtr ptex = EnvMap::create();
        
         textureVect[currLayer] = mpCubeScene->getEnvMap();
         Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
         pTex->setName("Texture Layer " + std::to_string(currLayer - 1));
-        //envMapConvert(*mpCubeScene->getEnvMap(), currLayer);
+
         mpCubeScene->setEnvMap(EnvMap::create(pTex));
-       // mpCubeScene->getMaterialSystem()->setDefaultTextureSampler(mpCubePointSampler);
     }
     else if (get) {
 
@@ -1153,7 +999,6 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
     }
     else if (mpScene && !mObjectSimulation)
     {
-        // change the simulation boolean to false.
         jitterCamera();
         rasterizeSurfaceView(pRenderContext);
         continousSimulation();
@@ -1165,7 +1010,7 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
     frames = gpFramework->getFrameRate().getMsg();
 
-    TextRenderer::render(pRenderContext, mModelString, pTargetFbo, float2(10, 30));
+    TextRenderer::render(pRenderContext, "", pTargetFbo, float2(10, 30));
 
 }
 
