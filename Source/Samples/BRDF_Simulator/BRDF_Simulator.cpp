@@ -952,14 +952,18 @@ void BRDF_Simulator::jitterCamera() {
 
         float rand01 = get_random(jitterInternal + seedIncEven + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
         float rand02 = get_random(jitterInternal + seedIncOdd + int(ceil(cameraPos.x)) + int(ceil(cameraPos.y)) + int(ceil(cameraPos.z)) + currLayerInternal);
-
-        if (currLayer == 15) {
-            mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 + kEpsilon, cameraPos[1] , cameraPos[2] + rand02 + kEpsilon));
+        std::cout << rand01 << " " << rand02 << " " << std::endl;
+       if (currLayer == 15) {
+            mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 , cameraPos[1] , cameraPos[2] + rand02));
             mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f + rand01, 0.f , float(planSize + 2) / 2.f) + rand02);
         }
+       else if (currLayer <= 4) {
+           mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01, cameraPos[1] + rand02, cameraPos[2]));
+           mpScene->getCamera()->setTarget(float3(float(planSize) / 2.f + rand01 + 0.5f, rand02, float(planSize + 2) / 2.f  + 0.5f));
+       }
         else {
-            mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 + kEpsilon, cameraPos[1] + rand02 + kEpsilon, cameraPos[2]));
-            mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f + rand01, 0.f + rand02, float(planSize + 2) / 2.f));
+            mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01, cameraPos[1] + rand02, cameraPos[2]));
+            mpScene->getCamera()->setTarget(float3(float(planSize) / 2.f + rand01 + 0.5f, 0.f, float(planSize + 2) / 2.f  +rand02 + 0.5f));
         }
 
 
