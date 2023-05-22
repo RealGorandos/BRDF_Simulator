@@ -4,7 +4,7 @@ import Utils.Sampling.TinyUniformSampleGenerator;
 import Utils.Math.MathHelpers;
 import Scene.Scene;
 #include "Cook_Torrence.brdf.hlsl"
-#include "Efficient_Simulation.hlsl"
+#include "BRDF_Simulation.hlsl"
 
 cbuffer PerFrameCB : register(b0)
 {

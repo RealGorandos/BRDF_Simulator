@@ -90,24 +90,18 @@ private:
     void rasterizeModelView(RenderContext* pRenderContext);
 
     //Jitter camera
-    void jitterCamera();
-
-    //Continous Simulation
-    void continousSimulation();
+    void cameraJitter();
+    void updateJitter();
 
     //Update EnvMap texture function
-    void  updateEnvMapTexture(bool clear, bool update, bool get, int currLayer);
 
     void setEnvMapModelShaderVars();
 
     void createTextures();
 
     Sampler::SharedPtr mpPointSampler = nullptr;
-    Sampler::SharedPtr mpLinearSampler = nullptr;
-    Sampler::SharedPtr mpCubePointSampler = nullptr;
-    DepthStencilState::SharedPtr mpNoDepthDS = nullptr;
+    
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
-    std::string mModelString;
 
     //Main scene PIPELINE
     Scene::SharedPtr mpScene = nullptr;
@@ -121,37 +115,31 @@ private:
     GraphicsProgram::SharedPtr mpModelProgram = nullptr;
     GraphicsVars::SharedPtr mpModelProgramVars = nullptr;
     GraphicsState::SharedPtr mpModelGraphicsState = nullptr;
-    bool mUseTriLinearFiltering = true;
-    bool mUseOriginalTangents = false;
-    bool mDontMergeMaterials = false;
 
     //CubeBox scene PIPELINE
-    Scene::SharedPtr mpCubeScene;
-    GraphicsProgram::SharedPtr mpCubeProgram = nullptr;
-    GraphicsVars::SharedPtr mpCubeProgramVars = nullptr;
-    GraphicsState::SharedPtr mpCubeGraphicsState = nullptr;
+    Scene::SharedPtr mpEnvMapScene;
+    GraphicsProgram::SharedPtr mpEnvMapProgram = nullptr;
+    GraphicsVars::SharedPtr mpEnvMapProgramVars = nullptr;
+    GraphicsState::SharedPtr mpEnvMapGraphicsState = nullptr;
     RasterizerState::SharedPtr mpRsState = nullptr;
+    Sampler::SharedPtr mpEnvMapPointSampler = nullptr;
     RasterizerState::CullMode mCubeCullMode = RasterizerState::CullMode::None;
-    Fbo::SharedPtr mpFbo;
-    Texture::SharedPtr pTex;
-    Sampler::SharedPtr mpSampler;
 
     //Orthographic Camera simulation PIPELINE
-    GraphicsProgram::SharedPtr mpDebuggingQuadProgram = nullptr;
-    GraphicsVars::SharedPtr mpDebuggingQuadProgramVars = nullptr;
-    GraphicsState::SharedPtr mpDebuggingQuadGraphicsState = nullptr;
-    SceneBuilder::SharedPtr mpDebuggingQuadSceneBuilder;
-    Scene::SharedPtr mpDebuggingQuadScene;
-    RasterizerState::SharedPtr mpDebuggingQuadWireframeRS = nullptr;
-    DepthStencilState::SharedPtr mpDebuggingQuadNoDepthDS = nullptr;
-    DepthStencilState::SharedPtr mpDebuggingQuadDepthTestDS = nullptr;
+    GraphicsProgram::SharedPtr mpVisualizorProgram = nullptr;
+    GraphicsVars::SharedPtr mpVisualizorProgramVars = nullptr;
+    GraphicsState::SharedPtr mpVisualizorGraphicsState = nullptr;
+    SceneBuilder::SharedPtr mpVisualizorSceneBuilder;
+    Scene::SharedPtr mpVisualizorScene;
+    RasterizerState::SharedPtr mpVisualizorWireframeRS = nullptr;
+    DepthStencilState::SharedPtr mpVisualizorDepthTestDS = nullptr;
 
     
    //Dropdown lists
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
     BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::Cook_Torrance;
     BRDF_Simulator::ProgramRes mTexRes = BRDF_Simulator::ProgramRes::_64x64;
-    BRDF_Simulator::ProgramRes mSurfRes = BRDF_Simulator::ProgramRes::_64x64;
+
     //Surface variables
     int planSize = 512; //Surface Of Microfacets size
     int planSizeTemp = planSize;
@@ -172,19 +160,14 @@ private:
     int jitterInternalStatic = 2;
     int bouncesInternal = 2;
     int bouncesInternalStatic = 2;
-    bool switchBool = false;
 
-    bool contSwitchBool = false;
     //Buttons variables
     bool BRDF_Simulation = false;
     bool clearTexture = false;
     bool continous_simulation = false;
 
     //OrthoQuad Visualization variables
-    float3 up = float3(0.f, 1.f, 0.f);
     float3 rotateQuad = float3(0.f, 0.f, 90.f);
-    float3 orthoCamPostion = float3(0.f, 0.f, 0.f);
-    float3 QuadLookAt = float3(1.5f, 0.f, 1.5f);
     int degOfRotation = 15;
     int maxLayer = 15;
     float3 cameraPos = float3(0.f);
@@ -193,12 +176,11 @@ private:
     int currLayer = 1;
     int currLayerTemp = 1;
     int currLayerInternal = 1;
-    //Falcor::Texture::SharedPtr var = Falcor::Texture::create2D(150, 150, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
+
+
     std::vector<Falcor::EnvMap::SharedPtr> textureVect;
     std::vector<Falcor::Sampler::SharedPtr> samplerVect;
 
-    Falcor::Texture::SharedPtr arr[15];
-    Falcor::Sampler::SharedPtr arrSamp[15];
     //Model view switching variables
     bool mMicrofacetes = true;
     bool mObjectSimulation = false;
@@ -213,30 +195,29 @@ private:
     bool runSimulation = false;
 
     
-    //Cook-torrence variables
+    //BRDFs variables
     float metallic = 0.f;
     float mRoughness = 0.f;
     float3 mAlbedo = float3(0.24f, 0.24f ,0.24f);
     float ao = float(0.f);
+    float3 lightIntensity = Falcor::float3(0.f);
+    float normalizing = 0.f;
 
     //Env Map resolution
     int envRes = 64;
     int envResTemp = envRes;
 
-    int layerCnt = 2;
-    int timer = 300;
+
 
 
     std::string frames;
 
-    float3 lightIntensity = Falcor::float3(0.f);
-    float normalizing = 0.f;
+
 
 
     bool runTest = false;
 
     std::ostringstream modelOSS;
-    std::ostringstream surfaceOSS;
     std::ostringstream textureOSS;
     int updateOnce = 1;
     int openOnce = 1;

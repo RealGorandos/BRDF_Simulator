@@ -3,12 +3,12 @@ add_falcor_executable(BRDF_Simulator)
 target_sources(BRDF_Simulator PRIVATE
     BRDF_Simulator.cpp
     BRDF_Simulator.h
-    BRDF_Simulator.3d.hlsl
+    Surface.3d.hlsl
     Cook_Torrence.brdf.hlsl
-    Efficient_Simulation.hlsl
+    BRDF_Simulation.hlsl
     EnvMap.3d.hlsl
     Model.3d.hlsl
-    OrthoCam.3d.hlsl
+    Visualizor.3d.hlsl
     Simulation.lib.hlsl
 )
 

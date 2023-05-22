@@ -8,16 +8,55 @@
 
 
 #pragma region HELPER METHODS SECTION
-/*Printing data in the window*/
 
 /*Gets a random number*/
 float get_random(unsigned long int jitterInternal)
 {
-    //seed *= 10;
+
     static std::default_random_engine e;
     e.seed(jitterInternal);
     static std::uniform_real_distribution<float> dis(-0.5f, 0.5f);
     return dis(e);
+}
+
+/*Update and clear textures*/
+void BRDF_Simulator::createTextures() {
+    textureVect.clear();
+    samplerVect.clear();
+    switch (mTexRes) {
+    case  BRDF_Simulator::ProgramRes::_32x32:
+        envRes = 32;
+        break;
+    case  BRDF_Simulator::ProgramRes::_64x64:
+        envRes = 64;
+        break;
+    case  BRDF_Simulator::ProgramRes::_128x128:
+        envRes = 128;
+        break;
+    case  BRDF_Simulator::ProgramRes::_256x256:
+        envRes = 256;
+        break;
+    case  BRDF_Simulator::ProgramRes::_512x512:
+        envRes = 512;
+        break;
+    default:
+        FALCOR_UNREACHABLE();
+    }
+
+    for (int i = 0; i < maxLayer; i++) {
+        Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
+        pTex->setName("Texture Layer " + std::to_string(i));
+        Falcor::EnvMap::SharedPtr pEnv = EnvMap::create(pTex);
+        textureVect.push_back(pEnv);
+
+        Sampler::Desc samplerDesc;
+        samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
+        samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
+        Falcor::Sampler::SharedPtr pSampler = Sampler::create(samplerDesc);
+
+        samplerVect.push_back(pSampler);
+    }
+
 }
 #pragma endregion HELPER METHODS
 
@@ -25,46 +64,30 @@ float get_random(unsigned long int jitterInternal)
 void BRDF_Simulator::setEnvMapShaderVars() {
 
     const auto& pEnvMap = textureVect[currLayer - 1];
-    mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
+    mpEnvMapProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
-        mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpCubeProgramVars["PerFrameCB"]["gSamples"] = maxJitter;
-        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
+        mpEnvMapProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
+        mpEnvMapProgramVars["PerFrameCB"]["gSamples"] = maxJitter;
+        mpEnvMapProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
     }
 
     rmcv::mat4 world = rmcv::translate(mpScene->getCamera()->getPosition());
 
-    mpCubeProgramVars["PerFrameCB"]["gWorld"] = world;
-    mpCubeProgramVars["PerFrameCB"]["gScale"] = 1.f;
-    mpCubeProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
-    mpCubeProgramVars["PerFrameCB"]["gProjMat"] = mpCubeScene->getCamera()->getProjMatrix();
-    mpCubeProgramVars["PerFrameCB"]["camRes"] = float(planSize);
+    mpEnvMapProgramVars["PerFrameCB"]["gWorld"] = world;
+    mpEnvMapProgramVars["PerFrameCB"]["gScale"] = 1.f;
+    mpEnvMapProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
+    mpEnvMapProgramVars["PerFrameCB"]["gProjMat"] = mpEnvMapScene->getCamera()->getProjMatrix();
+    mpEnvMapProgramVars["PerFrameCB"]["camRes"] = float(planSize);
 }
 
-void BRDF_Simulator::setEnvMapModelShaderVars() {
 
-    const auto& pEnvMap = textureVect[currLayer - 1];
-    mpCubeProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
-    if (pEnvMap) {
-        mpCubeProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpCubeProgramVars["PerFrameCB"]["gSamples"] = maxJitter;// *bouncesInternal;
-        mpCubeProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
-    }
-
-    rmcv::mat4 world = rmcv::translate(mpModelScene->getCamera()->getPosition());
-
-    mpCubeProgramVars["PerFrameCB"]["gWorld"] = world;
-    mpCubeProgramVars["PerFrameCB"]["gScale"] = 1.f;
-    mpCubeProgramVars["PerFrameCB"]["gViewMat"] = mpModelScene->getCamera()->getViewMatrix();
-    mpCubeProgramVars["PerFrameCB"]["gProjMat"] = mpCubeScene->getCamera()->getProjMatrix();
-}
 
 void BRDF_Simulator::setOrthoVisualizorVars() {
 
     rmcv::mat4 world = rmcv::translate(float3(0.f));
-    mpDebuggingQuadProgramVars["PerFrameCB"]["gWorld"] = world;
-    mpDebuggingQuadProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
-    mpDebuggingQuadProgramVars["PerFrameCB"]["gProjMat"] = mpScene->getCamera()->getProjMatrix();
+    mpVisualizorProgramVars["PerFrameCB"]["gWorld"] = world;
+    mpVisualizorProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
+    mpVisualizorProgramVars["PerFrameCB"]["gProjMat"] = mpScene->getCamera()->getProjMatrix();
 }
 
 void BRDF_Simulator::setSceneVars() {
@@ -172,7 +195,7 @@ void BRDF_Simulator::renderSurface() {
     {
         Program::Desc desc;
         desc.addShaderModules(mpScene->getShaderModules());
-        desc.addShaderLibrary("Samples/BRDF_Simulator/BRDF_Simulator.3d.hlsl").vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
+        desc.addShaderLibrary("Samples/BRDF_Simulator/Surface.3d.hlsl").vsEntry("vsMain").gsEntry("gsMain").psEntry("psMain");
         desc.addTypeConformances(mpScene->getTypeConformances());
 
         mpProgram = GraphicsProgram::create(desc, mpScene->getSceneDefines());
@@ -190,9 +213,9 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
 
     DepthStencilState::Desc tempdsDesc;
     tempdsDesc.setDepthFunc(ComparisonFunc::Less).setDepthEnabled(true);
-    mpDebuggingQuadDepthTestDS = DepthStencilState::create(tempdsDesc);
+    mpVisualizorDepthTestDS = DepthStencilState::create(tempdsDesc);
 
-    mpDebuggingQuadSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
+    mpVisualizorSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
     SceneBuilder::Node N;
     float deg =  -(currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f - M_PI;
     const float z = float(planSize + 2) / 2 + 10.f;
@@ -243,21 +266,21 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
 
     cameraPos = float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]);
 
-    mpDebuggingQuadSceneBuilder->addMeshInstance(mpDebuggingQuadSceneBuilder->addNode(N), mpDebuggingQuadSceneBuilder->addTriangleMesh(quadTemp, Material));
+    mpVisualizorSceneBuilder->addMeshInstance(mpVisualizorSceneBuilder->addNode(N), mpVisualizorSceneBuilder->addTriangleMesh(quadTemp, Material));
 
 
-    mpDebuggingQuadScene = mpDebuggingQuadSceneBuilder->getScene();
+    mpVisualizorScene = mpVisualizorSceneBuilder->getScene();
 
     {
         Program::Desc desc;
-        desc.addShaderModules(mpDebuggingQuadScene->getShaderModules());
-        desc.addShaderLibrary("Samples/BRDF_Simulator/OrthoCam.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
-        desc.addTypeConformances(mpDebuggingQuadScene->getTypeConformances());
+        desc.addShaderModules(mpVisualizorScene->getShaderModules());
+        desc.addShaderLibrary("Samples/BRDF_Simulator/Visualizor.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
+        desc.addTypeConformances(mpVisualizorScene->getTypeConformances());
 
-        mpDebuggingQuadProgram = GraphicsProgram::create(desc, mpDebuggingQuadScene->getSceneDefines());
+        mpVisualizorProgram = GraphicsProgram::create(desc, mpVisualizorScene->getSceneDefines());
     }
 
-    mpDebuggingQuadProgramVars = GraphicsVars::create(mpDebuggingQuadProgram->getReflector());
+    mpVisualizorProgramVars = GraphicsVars::create(mpVisualizorProgram->getReflector());
 
 
 
@@ -266,10 +289,10 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     RasterizerState::Desc orthoCubewireframeDesc;
     orthoCubewireframeDesc.setFillMode(RasterizerState::FillMode::Wireframe);
     orthoCubewireframeDesc.setCullMode(RasterizerState::CullMode::None);
-    mpDebuggingQuadWireframeRS = RasterizerState::create(orthoCubewireframeDesc);
+    mpVisualizorWireframeRS = RasterizerState::create(orthoCubewireframeDesc);
 
     // Depth test
-    mpDebuggingQuadGraphicsState->setProgram(mpDebuggingQuadProgram);
+    mpVisualizorGraphicsState->setProgram(mpVisualizorProgram);
     setCamController();
 }
 
@@ -281,8 +304,6 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
 
 
     SceneBuilder::Flags flags = SceneBuilder::Flags::None;
-    if (mUseOriginalTangents) flags |= SceneBuilder::Flags::UseOriginalTangentSpace;
-    if (mDontMergeMaterials) flags |= SceneBuilder::Flags::DontMergeMaterials;
     flags |= isSrgbFormat(fboFormat) ? SceneBuilder::Flags::None : SceneBuilder::Flags::AssumeLinearSpaceTextures;
 
     try
@@ -304,7 +325,7 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
     mpModelProgramVars = GraphicsVars::create(mpModelProgram->getReflector());
     mpModelGraphicsState->setProgram(mpModelProgram);
 
-    mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
+    mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
     setCamController();
 
 
@@ -331,19 +352,18 @@ bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
 void BRDF_Simulator::setEnvMapPipeline() {
 
 
-    mpCubeScene = Scene::create("cube.obj");
+    mpEnvMapScene = Scene::create("cube.obj");
 
-    mpCubeProgram = GraphicsProgram::createFromFile("Samples/BRDF_Simulator/EnvMap.3d.hlsl", "vsMain", "psMain");
-    mpCubeProgram->addDefines(mpCubeScene->getSceneDefines());
-    mpCubeProgramVars = GraphicsVars::create(mpCubeProgram->getReflector());
-    mpFbo = Fbo::create();
+    mpEnvMapProgram = GraphicsProgram::createFromFile("Samples/BRDF_Simulator/EnvMap.3d.hlsl", "vsMain", "psMain");
+    mpEnvMapProgram->addDefines(mpEnvMapScene->getSceneDefines());
+    mpEnvMapProgramVars = GraphicsVars::create(mpEnvMapProgram->getReflector());
 
     // Create state
-    mpCubeGraphicsState = GraphicsState::create();
+    mpEnvMapGraphicsState = GraphicsState::create();
     BlendState::Desc blendDesc;
     for (uint32_t i = 1; i < Fbo::getMaxColorTargetCount(); i++) blendDesc.setRenderTargetWriteMask(i, false, false, false, false);
     blendDesc.setIndependentBlend(true);
-    mpCubeGraphicsState->setBlendState(BlendState::create(blendDesc));
+    mpEnvMapGraphicsState->setBlendState(BlendState::create(blendDesc));
 
     // Create the rasterizer state
     RasterizerState::Desc rastDesc;
@@ -352,19 +372,19 @@ void BRDF_Simulator::setEnvMapPipeline() {
 
     DepthStencilState::Desc dsDesc;
     dsDesc.setDepthWriteMask(false).setDepthFunc(DepthStencilState::Func::LessEqual);
-    mpCubeGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
-    mpCubeGraphicsState->setProgram(mpCubeProgram);
+    mpEnvMapGraphicsState->setDepthStencilState(DepthStencilState::create(dsDesc));
+    mpEnvMapGraphicsState->setProgram(mpEnvMapProgram);
 
     Sampler::Desc samplerDesc;
     samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
     samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
-    mpCubePointSampler = Sampler::create(samplerDesc);
+    mpEnvMapPointSampler = Sampler::create(samplerDesc);
 
     auto pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
     pTex->setName("Enviroment Map");
 
-    mpCubeScene->setEnvMap(EnvMap::create(pTex));
-    mpCubeScene->getMaterialSystem()->setDefaultTextureSampler(mpCubePointSampler);
+    mpEnvMapScene->setEnvMap(EnvMap::create(pTex));
+    mpEnvMapScene->getMaterialSystem()->setDefaultTextureSampler(mpEnvMapPointSampler);
 
 }
 
@@ -533,6 +553,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                 int currRes = 32;
                 for (auto resType : textureResolutions) {
                     (uint32_t&)mTexRes = resType.value;
+                    createTextures();
                     textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
                     for (int i = 0; i < 15; i++) {
                         int width = textureVect[i]->getEnvMap()->getWidth();
@@ -760,10 +781,10 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
 
 
     mpScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
-    mpDebuggingQuadScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
+    mpVisualizorScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
 
     // Set render state     
-    mpDebuggingQuadGraphicsState->setDepthStencilState(mpDebuggingQuadDepthTestDS);
+    mpVisualizorGraphicsState->setDepthStencilState(mpVisualizorDepthTestDS);
     mpGraphicsState->setDepthStencilState(mpDepthTestDS);
     setSceneVars();
 
@@ -779,14 +800,15 @@ void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
         mpScene->rasterize(pRenderContext, mpGraphicsState.get(), mpProgramVars.get(), RasterizerState::CullMode::None);
     }
 
-    mpDebuggingQuadScene->rasterize(pRenderContext, mpDebuggingQuadGraphicsState.get(), mpDebuggingQuadProgramVars.get(), mpDebuggingQuadWireframeRS, mpDebuggingQuadWireframeRS);
+    mpVisualizorScene->rasterize(pRenderContext, mpVisualizorGraphicsState.get(), mpVisualizorProgramVars.get(), mpVisualizorWireframeRS, mpVisualizorWireframeRS);
 
-    mpCubeScene->rasterize(pRenderContext, mpCubeGraphicsState.get(), mpCubeProgramVars.get(), mpRsState, mpRsState);
+    mpEnvMapScene->rasterize(pRenderContext, mpEnvMapGraphicsState.get(), mpEnvMapProgramVars.get(), mpRsState, mpRsState);
 }
 #pragma endregion VIEWS RASTERIZATION
 
 #pragma region CAMERA JITTERING
-void BRDF_Simulator::jitterCamera() {
+/*Jitter camera for sampling*/
+void BRDF_Simulator::cameraJitter() {
     if (jitterInternal <= 0 && BRDF_Simulation) {
 
         this->BRDF_Simulation = false;
@@ -833,10 +855,12 @@ void BRDF_Simulator::jitterCamera() {
     }
 
 }
-#pragma endregion CAMERA JITTERING
 
-#pragma region CONTINOUS SIMULATION
-void BRDF_Simulator::continousSimulation() {
+
+
+
+/*Prepare Variables for the next layer jittering*/
+void BRDF_Simulator::updateJitter() {
     if (!BRDF_Simulation && continous_simulation && currLayerInternal >= 1 && currLayerInternal <= maxLayer) {
         seedIncEven = 1;
         seedIncOdd = 1;
@@ -850,7 +874,7 @@ void BRDF_Simulator::continousSimulation() {
         currLayer = currLayerInternal;
         currLayerTemp = currLayerInternal;
         loadOrthoVisualizor(currLayerInternal);
-        
+
 
         mpScene->getCamera()->setPosition(cameraPos);
         mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
@@ -869,81 +893,18 @@ void BRDF_Simulator::continousSimulation() {
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
     }
 }
+#pragma endregion CAMERA JITTERING
 
-#pragma endregion CONTINOUS SIMULATION
 
-void BRDF_Simulator::createTextures() {
-    textureVect.clear();
-    samplerVect.clear();
-    switch (mTexRes) {
-    case  BRDF_Simulator::ProgramRes::_32x32:
-        envRes = 32;
-        break;
-    case  BRDF_Simulator::ProgramRes::_64x64:
-        envRes = 64;
-        break;
-    case  BRDF_Simulator::ProgramRes::_128x128:
-        envRes = 128;
-        break;
-    case  BRDF_Simulator::ProgramRes::_256x256:
-        envRes = 256;
-        break;
-    case  BRDF_Simulator::ProgramRes::_512x512:
-        envRes = 512;
-        break;
-    default:
-        FALCOR_UNREACHABLE();
-    }
 
-    for (int i = 0; i < maxLayer; i++) {
-        Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
-        pTex->setName("Texture Layer " + std::to_string(i));
-        Falcor::EnvMap::SharedPtr pEnv = EnvMap::create(pTex);
-        textureVect.push_back(pEnv);
 
-        Sampler::Desc samplerDesc;
-        samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
-        samplerDesc.setAddressingMode(Sampler::AddressMode::Wrap, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
-        Falcor::Sampler::SharedPtr pSampler = Sampler::create(samplerDesc);
-
-        samplerVect.push_back(pSampler);
-    }
-
-}
-
-void BRDF_Simulator::updateEnvMapTexture(bool clear, bool update, bool get, int currLayer) {
-    if (clear) {
-        Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
-        pTex->setName("Texture Layer " + std::to_string(currLayer - 1));
-        textureVect[currLayer - 1] = EnvMap::create(pTex);
-        mpCubeScene->setEnvMap(EnvMap::create(textureVect[currLayer - 1]->getEnvMap()));
-    }
-    else if (update) {
-       
-        textureVect[currLayer] = mpCubeScene->getEnvMap();
-        Falcor::Texture::SharedPtr pTex = Texture::create2D(envRes, envRes, ResourceFormat::R32Uint, 1, 1, nullptr, ResourceBindFlags::ShaderResource | ResourceBindFlags::UnorderedAccess);
-        pTex->setName("Texture Layer " + std::to_string(currLayer - 1));
-
-        mpCubeScene->setEnvMap(EnvMap::create(pTex));
-    }
-    else if (get) {
-
-        mpCubeScene->setEnvMap(EnvMap::create(textureVect[currLayer]->getEnvMap()));
-       // mpCubeScene->getMaterialSystem()->setDefaultTextureSampler(mpCubePointSampler);
-    }
-
-}
 
 
 void BRDF_Simulator::onGuiRender(Gui* pGui)
 {
     Gui::Window w(pGui, "Menu", { 400, 300 }, { 0, 100 });
-   // Gui::MainMenu m(pGui);
-   // Gui::MainMenu n(pGui);
-   // Gui::Menu n(pGui, "Something");
 
 
-   // w.separator();
 
     if (mMicrofacetes) {
         loadSurfaceGUI(w);
@@ -958,13 +919,11 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 {
     
     mpGraphicsState = GraphicsState::create();
-    mpDebuggingQuadGraphicsState = GraphicsState::create();
+    mpVisualizorGraphicsState = GraphicsState::create();
     mpModelGraphicsState = GraphicsState::create();
 
     // Depth test
     DepthStencilState::Desc dsDesc;
-    dsDesc.setDepthEnabled(false);
-    mpNoDepthDS = DepthStencilState::create(dsDesc);
     dsDesc.setDepthFunc(ComparisonFunc::Less).setDepthEnabled(true);
     mpDepthTestDS = DepthStencilState::create(dsDesc);
 
@@ -972,8 +931,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
     samplerDesc.setAddressingMode(Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp, Sampler::AddressMode::Clamp);
     mpPointSampler = Sampler::create(samplerDesc);
-    samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
-    mpLinearSampler = Sampler::create(samplerDesc);
+
 
     createTextures();
    
@@ -989,23 +947,19 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
-    mpDebuggingQuadGraphicsState->setFbo(pTargetFbo);
+    mpVisualizorGraphicsState->setFbo(pTargetFbo);
     mpModelGraphicsState->setFbo(pTargetFbo);
     mpGraphicsState->setFbo(pTargetFbo);
-    mpCubeGraphicsState->setFbo(pTargetFbo);
+    mpEnvMapGraphicsState->setFbo(pTargetFbo);
 
     if (mpModelScene && !mMicrofacetes) {
         rasterizeModelView(pRenderContext);
     }
     else if (mpScene && !mObjectSimulation)
     {
-        jitterCamera();
+        cameraJitter();
         rasterizeSurfaceView(pRenderContext);
-        continousSimulation();
-
-        
-
-
+        updateJitter();
     }
 
     frames = gpFramework->getFrameRate().getMsg();
