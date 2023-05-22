@@ -94,7 +94,7 @@ float3 efficient_simulation(float3 L, float3 N, float3 V, float distance,int lay
     }
     //
 
-    uint samples = camRes * camRes * gSamples;
+    uint samples = camRes * gSamples;
     uint3 brdf_int = uint3(asuint(specular_init.r), asuint(specular_init.g), asuint(specular_init.b));
     float3 specular = float3(brdf_int / (samples * normalizing));
 

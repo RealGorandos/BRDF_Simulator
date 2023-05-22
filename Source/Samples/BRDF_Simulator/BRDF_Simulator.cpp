@@ -548,6 +548,10 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         seedIncOdd = 1;
         BRDF_Simulation = true;
         mOrthoCam = true;
+        if (currLayer != maxLayer) {
+            currLayer = maxLayer;
+            loadOrthoVisualizor(currLayer);
+        }
         currLayerInternal = currLayer;
         jitterInternal = jitterNum;
         jitterInternalStatic = jitterNum;
@@ -951,7 +955,7 @@ void BRDF_Simulator::jitterCamera() {
 
         if (currLayer == 15) {
             mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 + kEpsilon, cameraPos[1] , cameraPos[2] + rand02 + kEpsilon));
-            mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f + rand01, 0.f, float(planSize + 2) / 2.f) + rand02);
+            mpScene->getCamera()->setTarget(float3(float(planSize+ 2) / 2.f + rand01, 0.f , float(planSize + 2) / 2.f) + rand02);
         }
         else {
             mpScene->getCamera()->setPosition(float3(cameraPos[0] + rand01 + kEpsilon, cameraPos[1] + rand02 + kEpsilon, cameraPos[2]));
