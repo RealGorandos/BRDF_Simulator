@@ -4,13 +4,10 @@
 
 float3 simulated_BRDF(float3 V, float3 N, float3 L, Texture2D currTexture, SamplerState cuurSampler, float2 uv) {
     float3 brdf_float = float3(0.f);
-    int itr = 1215752192;
-    for (int i = 0; i <= itr; i++) {
-        uint twidth;
-        uint theight;
-        currTexture.GetDimensions(twidth, theight);
-        brdf_float = currTexture.Sample(cuurSampler, uv).xxx;
-    }
+    uint twidth;
+    uint theight;
+    currTexture.GetDimensions(twidth, theight);
+    brdf_float = currTexture.Sample(cuurSampler, uv).xxx;
     return brdf_float;
 }
 
@@ -90,9 +87,8 @@ float3 efficient_simulation(float3 L, float3 N, float3 V, float distance,int lay
 
         default :
             return float3(0.f);
-           // break;
+
     }
-    //
 
     uint samples = camRes * gSamples;
     uint3 brdf_int = uint3(asuint(specular_init.r), asuint(specular_init.g), asuint(specular_init.b));

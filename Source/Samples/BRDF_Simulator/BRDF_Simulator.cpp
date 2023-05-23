@@ -88,6 +88,9 @@ void BRDF_Simulator::setOrthoVisualizorVars() {
     mpVisualizorProgramVars["PerFrameCB"]["gWorld"] = world;
     mpVisualizorProgramVars["PerFrameCB"]["gViewMat"] = mpScene->getCamera()->getViewMatrix();
     mpVisualizorProgramVars["PerFrameCB"]["gProjMat"] = mpScene->getCamera()->getProjMatrix();
+    mpVisualizorProgramVars["PerFrameCB"]["gSize"] = planSize;
+    mpVisualizorProgramVars["PerFrameCB"]["deg"] = deg;
+    mpVisualizorProgramVars["PerFrameCB"]["scaleFact"] = scaleFactor;
 }
 
 void BRDF_Simulator::setSceneVars() {
@@ -207,6 +210,26 @@ void BRDF_Simulator::renderSurface() {
     setCamController();
 }
 
+void BRDF_Simulator::updateVisualizorTransformMat() {
+
+     deg = -(currLayer * 90.f / float(degOfRotation)) * 3.14159265358979323846264338327950288f / 180.f - M_PI;
+    const float z = float(planSize + 2) / 2 + 10.f;
+    const float y = 0.f;
+    N.transform[0][3] = float(planSize + 2) / 2.f; // x
+    N.transform[1][3] = z * float(sin(deg));  // y
+    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2) / 2;  // z
+
+    orthCamWidth = float(planSize) / 2.f;
+    orthCamHeight = float(planSize) / 2.f;
+
+    Falcor::Transform quadTranform = Falcor::Transform::Transform();
+    quadTranform.setRotationEuler(float3(-deg - M_PI_2, 0.f, 0.f));
+
+    N.transform = N.transform * rmcv::mat4_cast(quadTranform.getRotation());
+
+    cameraPos = float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]);
+
+}
 
 /*Load the orthographic visualizor quad*/
 void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
@@ -216,20 +239,14 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     mpVisualizorDepthTestDS = DepthStencilState::create(tempdsDesc);
 
     mpVisualizorSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
-    SceneBuilder::Node N;
-    float deg =  -(currLayer * 90.f / float(degOfRotation))* 3.14159265358979323846264338327950288f/180.f - M_PI;
-    const float z = float(planSize + 2) / 2 + 10.f;
-    const float y = 0.f;
-    N.transform[0][3] = float(planSize + 2) / 2.f; // x
-    N.transform[1][3] = z * float(sin(deg));  // y
-    N.transform[2][3] = z * float(cos(deg)) + float(planSize + 2)/2;  // z
+   // SceneBuilder::Node N;
+    float width = float(planSize);
+    float height = float(planSize);
    
     Falcor::StandardMaterial::SharedPtr Material = StandardMaterial::create("Surface Material", ShadingModel::MetalRough);
-    float width = float(planSize) ;
-    float height = float(planSize);
+
     Falcor::TriangleMesh::SharedPtr quadTemp = TriangleMesh::createQuad(float2(width, height));
-    orthCamWidth = width / 2.f;
-    orthCamHeight = height / 2.f;
+
     quadTemp->addVertex( float3(-(0.5f * width), width, -(0.5f * height)), float3(0.f, 0.f, 0.f), float2( 0.f, 0.f ));
     quadTemp->addVertex({ (0.5f * width), width, -(0.5f * height) }, float3(0.f, 0.f, 0.f), { 1.f, 0.f });
     quadTemp->addVertex({ -(0.5f * width), width,  (0.5f * height) }, float3(0.f, 0.f, 0.f), { 0.f, 1.f });
@@ -242,7 +259,6 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     indices.push_back(0);
 
     indices.push_back(5);
-
     indices.push_back(1);
     indices.push_back(1);
 
@@ -257,14 +273,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     quadTemp->setIndices(indices);
 
  
-    Falcor::Transform quadTranform = Falcor::Transform::Transform();
-
-    quadTranform.setRotationEuler(float3(-deg - M_PI_2, 0.f, 0.f ));
-
-    N.transform = N.transform * rmcv::mat4_cast(quadTranform.getRotation());
-    quadTranform.setRotationEulerDeg(rotateQuad);
-
-    cameraPos = float3(N.transform[0][3], N.transform[1][3], N.transform[2][3]);
+    updateVisualizorTransformMat();
 
     mpVisualizorSceneBuilder->addMeshInstance(mpVisualizorSceneBuilder->addNode(N), mpVisualizorSceneBuilder->addTriangleMesh(quadTemp, Material));
 
@@ -327,8 +336,6 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
 
     mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
     setCamController();
-
-
 }
 
 bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
@@ -403,11 +410,13 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     {
         auto surfaceSettings = w.group("Surface Settings");
 
-        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 120, 512, 2);
+        surfaceSettings.var(" Surface Size NxN", planSizeTemp, 120, maxPlaneSize, 2);
         if (surfaceSettings.button("Apply Size")) {
+            
             planSize = planSizeTemp;
+            scaleFactor = planSize / float(maxPlaneSize);
             renderSurface();
-            loadOrthoVisualizor(currLayer);
+            updateVisualizorTransformMat();
 
         }
         surfaceSettings.tooltip("Click \"Apply Size\" to apply the surface size changes.", true);
@@ -440,8 +449,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
         simulationSettings.var("Ray Bounces", bounces, 1);
 
-        simulationSettings.var("Current Layer", currLayer, 1, maxLayer);
-        simulationSettings.tooltip("Enter a value instead of dragging.", true);
+        simulationSettings.slider("Current Layer", currLayer, 1, maxLayer);
+
     }
 
     Gui::DropdownList cameraDropdown;
@@ -510,7 +519,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         mOrthoCam = true;
         if (currLayer != maxLayer) {
             currLayer = maxLayer;
-            loadOrthoVisualizor(currLayer);
+            updateVisualizorTransformMat();
         }
         currLayerInternal = currLayer;
         jitterInternal = jitterNum;
@@ -753,7 +762,6 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
     {
         mMicrofacetes = true;
         mObjectSimulation = false;
-        renderSurface();
     }
 }
 
@@ -774,8 +782,9 @@ void BRDF_Simulator::rasterizeModelView(RenderContext* pRenderContext) {
 
 void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
     if (currLayerTemp != currLayer) {
+       // scaleFactor = currLayer
         currLayerTemp = currLayer;
-        loadOrthoVisualizor(currLayer);
+        updateVisualizorTransformMat();
     }
 
 
@@ -873,7 +882,7 @@ void BRDF_Simulator::updateJitter() {
 
         currLayer = currLayerInternal;
         currLayerTemp = currLayerInternal;
-        loadOrthoVisualizor(currLayerInternal);
+        updateVisualizorTransformMat();
 
 
         mpScene->getCamera()->setPosition(cameraPos);

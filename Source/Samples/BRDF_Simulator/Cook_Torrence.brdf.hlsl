@@ -71,10 +71,9 @@ float3 render(float3 L, float3 N, float3 V, float distance) {
     float3 kS = float3(0.f);
     float3 specular = float3(0.f);
 
-    int itr = 1215752192;
-    for (int i = 0; i <= itr; i++) {
-        specular = cook_torrence_BRDF(V, N, L, kS);
-    }
+
+     specular = cook_torrence_BRDF(V, N, L, kS);
+  
     float3 kD = float3(1.0) - kS;
 
     kD *= 1.0 - metallic;

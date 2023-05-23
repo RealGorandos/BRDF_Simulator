@@ -1,3 +1,4 @@
+#include "Utils/Math/MathConstants.slangh"
 import Scene.Raster;
 import Utils.Sampling.TinyUniformSampleGenerator;
 import Rendering.Lights.LightHelpers;
@@ -21,6 +22,10 @@ cbuffer PerFrameCB
     float4x4 gWorld;
     float4x4 gViewMat;
     float4x4 gProjMat;
+    uniform int gSize;
+    uniform float deg;
+
+    uniform float scaleFact;
 };
 
 float3x3 rotate(float alpha, float beta, float gamma) {
@@ -64,7 +69,22 @@ VS_OUTPUT vsMain(VSIn vIn)
     const GeometryInstanceID instanceID = { vIn.instanceID };
     float4x4 worldMat = gScene.getWorldMatrix(instanceID);
 
-    float3 posW = mul(gWorld, float4(vIn.pos, 1.f)).xyz;
+
+    float alpha = deg + M_PI + 0.1;
+    float3x3 xRot = float3x3(float3(1, 0, 0),
+        float3(0, cos(alpha), -sin(alpha)),
+        float3(0, sin(alpha), cos(alpha)));
+
+    
+    float3 posIn = mul(float4(vIn.pos, 1.f), scale(scaleFact)).xyz;
+    posIn = mul(posIn, xRot);
+    const float z = -float(gSize + 2) / 2 + 5.f;
+
+    posIn[1] += z* float(sin(alpha));  // y
+    posIn[2] += z* float(cos(alpha)) + float(gSize + 2) / 2;  // z
+    
+    
+    float3 posW = mul(gWorld, float4(posIn, 1.f)).xyz;
     output.posW = posW;
     float4x4 gViewProjMat = mul(gProjMat, gViewMat);
     output.posH = mul(gViewProjMat, float4(posW, 1.f));
@@ -74,7 +94,7 @@ VS_OUTPUT vsMain(VSIn vIn)
     float4 tangent = vIn.unpack().tangent;
     output.tangentW = float4(mul((float3x3)gScene.getWorldMatrix(instanceID), tangent.xyz), tangent.w);
 
-    float3 prevPos = vIn.pos;
+    float3 prevPos = posIn;
     GeometryInstanceData instance = gScene.getGeometryInstance(instanceID);
     if (instance.isDynamic())
     {

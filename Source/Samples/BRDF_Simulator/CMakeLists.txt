@@ -13,5 +13,6 @@ target_sources(BRDF_Simulator PRIVATE
 )
 
 target_copy_shaders(BRDF_Simulator Samples/BRDF_Simulator)
+target_copy_data_folder(BRDF_Simulator Samples/BRDF_Simulator)
 
 target_source_group(BRDF_Simulator "Samples")

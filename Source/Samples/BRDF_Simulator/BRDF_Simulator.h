@@ -99,6 +99,8 @@ private:
 
     void createTextures();
 
+    void updateVisualizorTransformMat();
+
     Sampler::SharedPtr mpPointSampler = nullptr;
     
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
@@ -133,8 +135,8 @@ private:
     Scene::SharedPtr mpVisualizorScene;
     RasterizerState::SharedPtr mpVisualizorWireframeRS = nullptr;
     DepthStencilState::SharedPtr mpVisualizorDepthTestDS = nullptr;
-
-    
+    Falcor::rmcv::mat4 visualizorTranformMat;
+    SceneBuilder::Node N;
    //Dropdown lists
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
     BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::Cook_Torrance;
@@ -143,6 +145,7 @@ private:
     //Surface variables
     int planSize = 512; //Surface Of Microfacets size
     int planSizeTemp = planSize;
+    int maxPlaneSize = 512;
     float roughness = 0.f;
 
     //Ortho Camera variables
@@ -198,7 +201,7 @@ private:
     //BRDFs variables
     float metallic = 0.f;
     float mRoughness = 0.f;
-    float3 mAlbedo = float3(0.24f, 0.24f ,0.24f);
+    float3 mAlbedo = float3(0.f, 0.f ,0.f);
     float ao = float(0.f);
     float3 lightIntensity = Falcor::float3(0.f);
     float normalizing = 0.f;
@@ -209,10 +212,11 @@ private:
 
 
 
-
+    float rotateY = 0.f;
+    float deg = 0.f;
     std::string frames;
 
-
+    float scaleFactor = 1.f;
 
 
     bool runTest = false;
