@@ -596,8 +596,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                 Falcor::Scene::SceneStats b;
                 modelOSS << "\tTest loading a Model with a lot of triangles: " << std::endl;
            
-                loadModelFromFile("TestScenes/Lucy.obj" , gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
-                modelOSS << "\t\t\tModel path: Falcor/media/TestScenes/Lucy.obj" << std::endl;
+                loadModelFromFile("Lucy.obj" , gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+                modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
                 modelOSS << "\t\t\t\tOpening Model --> ";
                 if (mpModelScene) {
                     modelOSS << " PASSED" << std::endl;
@@ -613,8 +613,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                 modelOSS << "\tTest loading a model with fewer triangles: " << std::endl;
                 mpModelScene = nullptr;
                 
-                loadModelFromFile("TestScenes/Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
-                modelOSS << "\t\t\tModel path: Falcor/media/TestScenes/Bunny.obj" << std::endl;
+                loadModelFromFile("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+                modelOSS << "\t\t\tModel: Bunny.obj" << std::endl;
                 modelOSS << "\t\t\t\tOpening Model --> ";
                 if (mpModelScene) {
                     modelOSS << " PASSED" << std::endl;
@@ -630,8 +630,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                 modelOSS << std::endl;
 
                 modelOSS << "\tTesting the two models: " << std::endl;
-                modelOSS << "\t\tLucy has more triangles than Bunny --> " ;
-                if (a.uniqueTriangleCount > b.uniqueTriangleCount) {
+                modelOSS << "\t\tBunny.obj has more triangles than Lucy.obj --> " ;
+                if (a.uniqueTriangleCount < b.uniqueTriangleCount) {
                     modelOSS << "PASSED" << std::endl;
                     passedCnt++;
                 }
@@ -639,8 +639,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
                     modelOSS << "FAILED" << std::endl;
                 }
 
-                modelOSS << "\t\tLucy has more vertices than Bunny --> ";
-                if (a.uniqueVertexCount > b.uniqueVertexCount) {
+                modelOSS << "\t\tBunny.obj has more vertices than Lucy.obj --> ";
+                if (a.uniqueVertexCount < b.uniqueVertexCount) {
                     modelOSS << "PASSED" << std::endl;
                     passedCnt++;
                 }
