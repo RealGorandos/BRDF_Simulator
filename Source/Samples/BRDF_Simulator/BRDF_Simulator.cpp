@@ -415,6 +415,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
             
             planSize = planSizeTemp;
             scaleFactor = planSize / float(maxPlaneSize);
+            createTextures();
             renderSurface();
             updateVisualizorTransformMat();
 
@@ -594,7 +595,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
               
                 Falcor::Scene::SceneStats a;
                 Falcor::Scene::SceneStats b;
-                modelOSS << "\tTest loading a Model with a lot of triangles: " << std::endl;
+                modelOSS << "\tTest loading a Model with a few triangles: " << std::endl;
            
                 loadModelFromFile("Lucy.obj" , gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
                 modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
@@ -610,7 +611,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
            
                 modelOSS << std::endl;
 
-                modelOSS << "\tTest loading a model with fewer triangles: " << std::endl;
+                modelOSS << "\tTest loading a model with a lot triangles: " << std::endl;
                 mpModelScene = nullptr;
                 
                 loadModelFromFile("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
