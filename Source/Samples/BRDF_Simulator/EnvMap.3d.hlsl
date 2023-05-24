@@ -31,7 +31,7 @@ cbuffer PerFrameCB
 VS_OUTPUT vsMain(float4 posL : POSITION, float2 texCoord : TEXCOORD)
 {
     VS_OUTPUT output;
-    float4 pos = posL;// float4(posL.x + 1.5, posL.y, posL.z + 1.5, posL.w);
+    float4 pos = posL;
     output.dir = pos.xyz;
     float4 viewPos = mul(gViewMat, mul(gWorld, pos));
     output.posH = mul(gProjMat, viewPos);

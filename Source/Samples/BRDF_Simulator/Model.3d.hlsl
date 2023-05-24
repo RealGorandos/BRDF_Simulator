@@ -61,9 +61,6 @@ cbuffer PerFrameCB : register(b0)
 
 };
 
-    //Texture2D  textureArr[15];// ({ texture2d_0, texture2d_1, texture2d_2, texture2d_3, texture2d_4, texture2d_5, texture2d_6, texture2d_7, texture2d_8, texture2d_9, texture2d_10, texture2d_11, texture2d_12, texture2d_13,texture2d_14 });
-    //SamplerState  samplerArr[15];// { gSampler_0, gSampler_1, gSampler_2, gSampler_3, gSampler_4, gSampler_5, gSampler_6, gSampler_7, gSampler_8, gSampler_9, gSampler_10, gSampler_11, gSampler_12, gSampler_13, gSampler_14 });
-
 VSOut vsMain(VSIn vIn)
 {
 

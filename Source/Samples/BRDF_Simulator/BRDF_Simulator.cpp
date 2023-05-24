@@ -19,7 +19,7 @@ float get_random(unsigned long int jitterInternal)
     return dis(e);
 }
 
-/*Update and clear textures*/
+/*Updates and clears textures*/
 void BRDF_Simulator::createTextures() {
     textureVect.clear();
     samplerVect.clear();
@@ -61,6 +61,7 @@ void BRDF_Simulator::createTextures() {
 #pragma endregion HELPER METHODS
 
 #pragma region SHADER VARS FILLING
+/*Set the variables to be passed to the EnvMap shader*/
 void BRDF_Simulator::setEnvMapShaderVars() {
 
     const auto& pEnvMap = textureVect[currLayer - 1];
@@ -79,9 +80,7 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     mpEnvMapProgramVars["PerFrameCB"]["gProjMat"] = mpEnvMapScene->getCamera()->getProjMatrix();
     mpEnvMapProgramVars["PerFrameCB"]["camRes"] = float(planSize);
 }
-
-
-
+/*Set the variables to be passed to the Visualizor shader*/
 void BRDF_Simulator::setOrthoVisualizorVars() {
 
     rmcv::mat4 world = rmcv::translate(float3(0.f));
@@ -92,7 +91,7 @@ void BRDF_Simulator::setOrthoVisualizorVars() {
     mpVisualizorProgramVars["PerFrameCB"]["deg"] = deg;
     mpVisualizorProgramVars["PerFrameCB"]["scaleFact"] = scaleFactor;
 }
-
+/*Set the variables to be passed to the Surface shader*/
 void BRDF_Simulator::setSceneVars() {
     mpProgramVars["PerFrameCB"]["BRDF_Simulation"] = BRDF_Simulation;
     mpProgramVars["PerFrameCB"]["roughness"] = roughness;
@@ -104,7 +103,7 @@ void BRDF_Simulator::setSceneVars() {
         mpProgramVars["PerFrameCB"]["tex2D_uav"].setUav(textureVect[currLayer - 1]->getEnvMap()->getUAV(0));
  
 }
-
+/*Set the variables to be passed to the Modle shader*/
 void BRDF_Simulator::setModelVars() {
     mpModelProgramVars["PerFrameCB"]["camPos"] = mpModelScene->getCamera()->getPosition();
     //Material
@@ -309,6 +308,7 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
 #pragma endregion RENEDER TO THE SURFACE SCENE SECTION
 
 #pragma region LOAD FROM A FILE TO THE MODEL SCENE SECTION
+/*Load an object from a file*/
 void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat)
 {
 
@@ -338,7 +338,9 @@ void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, Resour
     mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
     setCamController();
 }
-
+/*Loads the path of the model
+* return: True if the object was found. Otherwise, false.
+*/
 bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
 {
     std::filesystem::path path;
@@ -772,8 +774,7 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
 
 #pragma region VIEWS RASTERIZATION
 
-
-/*Rasterize Views*/
+/*Rasterize Model Pipeline*/
 void BRDF_Simulator::rasterizeModelView(RenderContext* pRenderContext) {
 
     mpModelScene->update(pRenderContext, gpFramework->getGlobalClock().getTime());
@@ -782,7 +783,7 @@ void BRDF_Simulator::rasterizeModelView(RenderContext* pRenderContext) {
     mpModelScene->rasterize(pRenderContext, mpModelGraphicsState.get(), mpModelProgramVars.get(), RasterizerState::CullMode::None);
 }
 
-
+/*Rasterize Surface Pipeline*/
 void BRDF_Simulator::rasterizeSurfaceView(RenderContext* pRenderContext) {
     if (currLayerTemp != currLayer) {
        // scaleFactor = currLayer

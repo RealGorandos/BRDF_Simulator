@@ -14,13 +14,11 @@ void fillVertices(const int x, const int y, inout float3 v1, inout float3 v2, in
 }
 
 void findLines(const float3 pos, const float3 dir, const float3 v1, const float3 v2, const float3 v3, const float3 v4, inout float4 firstLine, inout float4 secondLine) {
-    //if (pos.x == v2.x) {
-    //    firstLine = float4(v2.x + 1, -0.5f, v2.x + 1, float(surfaceSize[0]) - 0.5f);
-    //}
-    if (dir.x > 0.f) {//This works
+
+    if (dir.x > 0.f) {
         if (pos.x < v2.x) {
             firstLine = float4(v2.x, 1.f, v2.x, float(surfaceSize) + 1);
-            // return true;
+     
         }
         else if (pos.x == v2.x) {
             firstLine = float4(v2.x + 1.f, 1.f, v2.x + 1.f, float(surfaceSize) + 1);
@@ -133,7 +131,7 @@ bool rayTriangleIntersect(
     float3 pvec = cross(dir, v0v2);
     float det = dot(v0v1, pvec);
     // ray and triangle are parallel if det is close to 0
-    //if (( det < kEpsilon)) return false;
+    if ((det > -kEpsilon) && ( det < kEpsilon)) return false;
 
     float invDet = 1.0 / det;
 
