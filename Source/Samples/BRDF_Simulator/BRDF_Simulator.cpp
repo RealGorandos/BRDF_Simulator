@@ -207,9 +207,11 @@ void BRDF_Simulator::renderSurface() {
     mpProgramVars = GraphicsVars::create(mpProgram->getReflector());
     mpGraphicsState->setProgram(mpProgram);
 
+    mpScene->setCameraSpeed(120.f);
     setCamController();
 }
 
+/*Calculates the direction*/
 void BRDF_Simulator::updateVisualizorTransformMat() {
 
      deg = -(currLayer * 90.f / float(degOfRotation)) * 3.14159265358979323846264338327950288f / 180.f - M_PI;
@@ -239,7 +241,6 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
     mpVisualizorDepthTestDS = DepthStencilState::create(tempdsDesc);
 
     mpVisualizorSceneBuilder = SceneBuilder::create(SceneBuilder::Flags::None);
-   // SceneBuilder::Node N;
     float width = float(planSize);
     float height = float(planSize);
    
@@ -950,7 +951,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     renderSurface();
     loadOrthoVisualizor(currLayer);
     setEnvMapPipeline();
-    mpScene->setCameraSpeed(20.f);
+    
 }
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
