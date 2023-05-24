@@ -67,7 +67,7 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     mpEnvMapProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpEnvMapProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpEnvMapProgramVars["PerFrameCB"]["gSamples"] = maxJitter;
+        mpEnvMapProgramVars["PerFrameCB"]["gSamples"] = jitterInternalStatic;
         mpEnvMapProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
     }
 
@@ -516,6 +516,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         createTextures();
         seedIncEven = 1;
         seedIncOdd = 1;
+
         BRDF_Simulation = true;
         mOrthoCam = true;
         if (currLayer != maxLayer) {
@@ -595,7 +596,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
               
                 Falcor::Scene::SceneStats a;
                 Falcor::Scene::SceneStats b;
-                modelOSS << "\tTest loading a Model with a few triangles: " << std::endl;
+                modelOSS << "\tTest loading a Model with few triangles: " << std::endl;
            
                 loadModelFromFile("Lucy.obj" , gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
                 modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
