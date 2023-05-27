@@ -629,8 +629,15 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     {
         auto surfaceSettings = w.group("Surface Settings");
 
+        if (BRDF_Simulation || continous_simulation) {
+
+            planSizeTemp = sizeHolder;
+            roughness = roughnessHolder;
+
+        }
+
         surfaceSettings.var(" Surface Size NxN", planSizeTemp, 120, maxPlaneSize, 2);
-        if (surfaceSettings.button("Apply Size")) {
+        if (surfaceSettings.button("Apply Size") && !BRDF_Simulation && !continous_simulation) {
             
             planSize = planSizeTemp;
             scaleFactor = planSize / float(maxPlaneSize);
@@ -642,7 +649,12 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         surfaceSettings.tooltip("Click \"Apply Size\" to apply the surface size changes.", true);
 
         surfaceSettings.var(" Surface Roughness", roughness, 0.f, 1.f);
+        if (BRDF_Simulation || continous_simulation) {
 
+            planSizeTemp = sizeHolder;
+            roughness = roughnessHolder;
+
+        }
 
     }
 
@@ -715,6 +727,9 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         jitterHolder = jitterNum;
         bouncesHolder = bounces;
         layerHolder = currLayerInternal;
+
+        sizeHolder  = planSizeTemp;
+        roughnessHolder = roughness;
 
         currLayerInternal = currLayer;
         jitterInternal = jitterNum;
@@ -1017,7 +1032,8 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
-    std::cout << jitterInternal << std::endl;
+    std::cout << jitterNum << std::endl;
+   // std::cout << bounces << std::endl;
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
 
