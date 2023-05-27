@@ -790,11 +790,14 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
         runSimulation = true;
     }
 
-    if (w.button("Stop Simulation")) {
+    if (w.button("Stop Simulation", true)) {
         runSimulation = false;
     }
 
-    if (w.button("View Surface"))
+    if (w.button("Load Model", false)) {
+        loadModel(gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+    }
+    if (w.button("View Surface", true))
     {
         mMicrofacetes = true;
         mObjectSimulation = false;
