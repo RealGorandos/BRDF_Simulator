@@ -70,7 +70,8 @@ private:
     //Update EnvMap texture function
     void createTextures();
 
-    
+    //Run Testing
+    void startTest(Gui::Window& w, Gui::DropdownList textureResolutions);
 
     Sampler::SharedPtr mpPointSampler = nullptr;
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;

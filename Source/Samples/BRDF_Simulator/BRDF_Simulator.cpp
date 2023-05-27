@@ -8,7 +8,6 @@
 
 
 #pragma region HELPER METHODS SECTION
-
 /*Gets a random number*/
 float get_random(unsigned long int jitterInternal)
 {
@@ -56,6 +55,128 @@ void BRDF_Simulator::createTextures() {
 
         samplerVect.push_back(pSampler);
     }
+
+
+ 
+
+}
+
+/*Start running testing*/
+void BRDF_Simulator::startTest(Gui::Window& w, Gui::DropdownList textureResolutions) {
+    Gui::Window x(w, "Test Window", { 400, 500 }, { 100, 100 });
+    const auto& s = mpScene->getSceneStats();
+    const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
+
+    if (auto texResTest = x.group("Texture Resolution Test:", true))
+    {
+        if (iterateOnce == 1) {
+
+            int passedCnt = 0;
+            int currRes = 32;
+            for (auto resType : textureResolutions) {
+                (uint32_t&)mTexRes = resType.value;
+                createTextures();
+                textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
+                for (int i = 0; i < 15; i++) {
+                    int width = textureVect[i]->getEnvMap()->getWidth();
+                    int height = textureVect[i]->getEnvMap()->getHeight();
+                    textureOSS << "\t\tTesting if resolution of layer  " << std::to_string(i + 1) << " is " << std::to_string(currRes) << "x" << std::to_string(currRes) << "    ---->   ";
+                    if (width == currRes && height == currRes) {
+                        textureOSS << "PASSED" << std::endl;
+                        passedCnt++;
+                    }
+                    else {
+                        textureOSS << "FAILED" << std::endl;
+                    }
+
+                }
+                currRes *= 2;
+                textureOSS << std::endl;
+            }
+            totallPassed += passedCnt;
+            textureOSS << "\tResult: " << std::endl;
+            textureOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(15 * textureResolutions.size()) << " Passed" << std::endl;
+            iterateOnce--;
+        }
+        texResTest.text(textureOSS.str());
+    }
+    if (auto LoadModelTest = x.group("Load Model Test:", true))
+    {
+        if (openOnce == 1) {
+            int passedCnt = 0;
+
+            Falcor::Scene::SceneStats a;
+            Falcor::Scene::SceneStats b;
+            modelOSS << "\tTest loading a Model with few triangles: " << std::endl;
+
+            loadModelFromFile("Lucy.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+            modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
+            modelOSS << "\t\t\t\tOpening Model --> ";
+            if (mpModelScene) {
+                modelOSS << " PASSED" << std::endl;
+                a = mpModelScene->getSceneStats();
+                passedCnt++;
+            }
+            else {
+                modelOSS << " FAILED" << std::endl;
+            }
+
+            modelOSS << std::endl;
+
+            modelOSS << "\tTest loading a model with a lot triangles: " << std::endl;
+            mpModelScene = nullptr;
+
+            loadModelFromFile("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+            modelOSS << "\t\t\tModel: Bunny.obj" << std::endl;
+            modelOSS << "\t\t\t\tOpening Model --> ";
+            if (mpModelScene) {
+                modelOSS << " PASSED" << std::endl;
+                b = mpModelScene->getSceneStats();
+                passedCnt++;
+            }
+            else {
+                modelOSS << " FAILED" << std::endl;
+            }
+
+            mpModelScene = nullptr;
+
+            modelOSS << std::endl;
+
+            modelOSS << "\tTesting the two models: " << std::endl;
+            modelOSS << "\t\tBunny.obj has more triangles than Lucy.obj --> ";
+            if (a.uniqueTriangleCount < b.uniqueTriangleCount) {
+                modelOSS << "PASSED" << std::endl;
+                passedCnt++;
+            }
+            else {
+                modelOSS << "FAILED" << std::endl;
+            }
+
+            modelOSS << "\t\tBunny.obj has more vertices than Lucy.obj --> ";
+            if (a.uniqueVertexCount < b.uniqueVertexCount) {
+                modelOSS << "PASSED" << std::endl;
+                passedCnt++;
+            }
+            else {
+                modelOSS << "FAILED" << std::endl;
+            }
+            openOnce--;
+            totallPassed += passedCnt;
+            modelOSS << std::endl;
+            modelOSS << "\tResult: " << std::endl;
+            modelOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(4) << " Passed" << std::endl;
+        }
+        LoadModelTest.text(modelOSS.str());
+    }
+
+    x.separator();
+
+    x.text("\tFinal Result:\n");
+    x.text("\t\t" + std::to_string(totallPassed) + " out of " + std::to_string(79) + " Passed \n");
+    if (x.button("Exit")) {
+        runTest = false;
+    }
+
 
 }
 #pragma endregion HELPER METHODS
@@ -404,12 +525,7 @@ void BRDF_Simulator::setEnvMapPipeline() {
 
 //Load Surface Pipeline GUI
 void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
-
-
-
-
-
-
+ 
     {
         auto surfaceSettings = w.group("Surface Settings");
 
@@ -537,7 +653,14 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     }
     if (w.button("Clear Textures", true)) { createTextures();}
 
-    if (w.button("View Model", true))
+    if (mpModelScene) {
+        if (w.button("View Model", true)) {
+            mObjectSimulation = true;
+            mMicrofacetes = false;
+        }
+    }
+
+    if (w.button("Load Model", !mpModelScene))
     {
         mObjectSimulation = true;
         mMicrofacetes = false;
@@ -555,119 +678,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     }
 
     if (runTest) {
-        Gui::Window x(w, "Test Window", { 400, 500 }, { 100, 100 });
-        const auto& s = mpScene->getSceneStats();
-        const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
-
-        if (auto texResTest = x.group("Texture Resolution Test:", true))
-        {
-            if (iterateOnce == 1) {
-                
-                int passedCnt = 0;
-                int currRes = 32;
-                for (auto resType : textureResolutions) {
-                    (uint32_t&)mTexRes = resType.value;
-                    createTextures();
-                    textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
-                    for (int i = 0; i < 15; i++) {
-                        int width = textureVect[i]->getEnvMap()->getWidth();
-                        int height = textureVect[i]->getEnvMap()->getHeight();
-                        textureOSS << "\t\tTesting if resolution of layer  " << std::to_string(i + 1) << " is " << std::to_string(currRes) << "x" << std::to_string(currRes) << "    ---->   ";
-                        if (width == currRes && height == currRes) {
-                            textureOSS << "PASSED" << std::endl;
-                            passedCnt++;
-                        }
-                        else {
-                            textureOSS << "FAILED" << std::endl;
-                        }
-
-                    }
-                    currRes *= 2;
-                    textureOSS << std::endl;
-                }
-                totallPassed += passedCnt;
-                textureOSS << "\tResult: " <<  std::endl;
-                textureOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(15 * textureResolutions.size()) << " Passed" << std::endl;
-                iterateOnce--;
-            }
-            texResTest.text(textureOSS.str());
-        }
-        if (auto LoadModelTest = x.group("Load Model Test:", true))
-        {
-            if (openOnce == 1) {
-                int passedCnt = 0;
-              
-                Falcor::Scene::SceneStats a;
-                Falcor::Scene::SceneStats b;
-                modelOSS << "\tTest loading a Model with few triangles: " << std::endl;
-           
-                loadModelFromFile("Lucy.obj" , gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
-                modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
-                modelOSS << "\t\t\t\tOpening Model --> ";
-                if (mpModelScene) {
-                    modelOSS << " PASSED" << std::endl;
-                        a = mpModelScene->getSceneStats();
-                        passedCnt++;
-                }
-                else {
-                    modelOSS << " FAILED" << std::endl;
-                }
-           
-                modelOSS << std::endl;
-
-                modelOSS << "\tTest loading a model with a lot triangles: " << std::endl;
-                mpModelScene = nullptr;
-                
-                loadModelFromFile("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
-                modelOSS << "\t\t\tModel: Bunny.obj" << std::endl;
-                modelOSS << "\t\t\t\tOpening Model --> ";
-                if (mpModelScene) {
-                    modelOSS << " PASSED" << std::endl;
-                    b = mpModelScene->getSceneStats();
-                    passedCnt++;
-                }
-                else {
-                    modelOSS << " FAILED" << std::endl;
-                }
-
-                mpModelScene = nullptr;
-
-                modelOSS << std::endl;
-
-                modelOSS << "\tTesting the two models: " << std::endl;
-                modelOSS << "\t\tBunny.obj has more triangles than Lucy.obj --> " ;
-                if (a.uniqueTriangleCount < b.uniqueTriangleCount) {
-                    modelOSS << "PASSED" << std::endl;
-                    passedCnt++;
-                }
-                else {
-                    modelOSS << "FAILED" << std::endl;
-                }
-
-                modelOSS << "\t\tBunny.obj has more vertices than Lucy.obj --> ";
-                if (a.uniqueVertexCount < b.uniqueVertexCount) {
-                    modelOSS << "PASSED" << std::endl;
-                    passedCnt++;
-                }
-                else {
-                    modelOSS << "FAILED" << std::endl;
-                }
-                openOnce--;
-                totallPassed += passedCnt;
-                modelOSS << std::endl;
-                modelOSS << "\tResult: " << std::endl;
-                modelOSS << "\t\t" << std::to_string(passedCnt) << " out of " << std::to_string(4) << " Passed" << std::endl;
-            }
-                LoadModelTest.text(modelOSS.str());
-        }
-
-        x.separator();
-
-        x.text( "\tFinal Result:\n");
-        x.text("\t\t" + std::to_string(totallPassed) + " out of " + std::to_string(79) + " Passed \n" );
-        if (x.button("Exit")) {
-            runTest = false;
-        }
+        startTest(w, textureResolutions);
 
     }
 
