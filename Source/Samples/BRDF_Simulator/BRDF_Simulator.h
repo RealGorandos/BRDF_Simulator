@@ -34,6 +34,7 @@ private:
     //Loading model from a file
     bool loadModel(ResourceFormat fboFormat);
     void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat);
+    void loadFromFileTesting(const std::filesystem::path& path, ResourceFormat fboFormat);
 
     //Render the microfacts surface
     void renderSurface();
@@ -88,6 +89,7 @@ private:
     GraphicsProgram::SharedPtr mpModelProgram = nullptr;
     GraphicsVars::SharedPtr mpModelProgramVars = nullptr;
     GraphicsState::SharedPtr mpModelGraphicsState = nullptr;
+    Scene::SharedPtr mpTestModelScene = nullptr;
 
     //CubeBox scene PIPELINE
     Scene::SharedPtr mpEnvMapScene;

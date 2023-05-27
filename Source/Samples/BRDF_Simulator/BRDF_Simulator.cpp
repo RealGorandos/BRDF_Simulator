@@ -8,6 +8,24 @@
 
 
 #pragma region HELPER METHODS SECTION
+void BRDF_Simulator::loadFromFileTesting(const std::filesystem::path& path, ResourceFormat fboFormat) {
+
+    SceneBuilder::Flags flags = SceneBuilder::Flags::None;
+    flags |= isSrgbFormat(fboFormat) ? SceneBuilder::Flags::None : SceneBuilder::Flags::AssumeLinearSpaceTextures;
+
+    try
+    {
+        mpTestModelScene = SceneBuilder::create(path, flags)->getScene();
+    }
+    catch (const std::exception& e)
+    {
+        msgBox(fmt::format("Failed to load model.\n\n{}", e.what()));
+        return;
+    }
+
+}
+
+
 /*Gets a random number*/
 float get_random(unsigned long int jitterInternal)
 {
@@ -109,12 +127,12 @@ void BRDF_Simulator::startTest(Gui::Window& w, Gui::DropdownList textureResoluti
             Falcor::Scene::SceneStats b;
             modelOSS << "\tTest loading a Model with few triangles: " << std::endl;
 
-            loadModelFromFile("Lucy.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+            loadFromFileTesting("Lucy.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
             modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
             modelOSS << "\t\t\t\tOpening Model --> ";
-            if (mpModelScene) {
+            if (mpTestModelScene) {
                 modelOSS << " PASSED" << std::endl;
-                a = mpModelScene->getSceneStats();
+                a = mpTestModelScene->getSceneStats();
                 passedCnt++;
             }
             else {
@@ -124,21 +142,23 @@ void BRDF_Simulator::startTest(Gui::Window& w, Gui::DropdownList textureResoluti
             modelOSS << std::endl;
 
             modelOSS << "\tTest loading a model with a lot triangles: " << std::endl;
-            mpModelScene = nullptr;
+            mpTestModelScene = nullptr;
 
-            loadModelFromFile("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+            loadFromFileTesting("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
             modelOSS << "\t\t\tModel: Bunny.obj" << std::endl;
             modelOSS << "\t\t\t\tOpening Model --> ";
-            if (mpModelScene) {
+            if (mpTestModelScene) {
                 modelOSS << " PASSED" << std::endl;
-                b = mpModelScene->getSceneStats();
+                b = mpTestModelScene->getSceneStats();
                 passedCnt++;
             }
             else {
                 modelOSS << " FAILED" << std::endl;
             }
 
-            mpModelScene = nullptr;
+            mpTestModelScene = nullptr;
+
+            mpTestModelScene.reset();
 
             modelOSS << std::endl;
 
