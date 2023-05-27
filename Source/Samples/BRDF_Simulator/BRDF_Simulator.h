@@ -121,8 +121,8 @@ private:
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
     Scene::CameraControllerType mCameraTypeHolder = Scene::CameraControllerType::Orbiter;
     BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::Cook_Torrance;
-    BRDF_Simulator::ProgramRes mTexRes = BRDF_Simulator::ProgramRes::_64x64;
-
+    BRDF_Simulator::ProgramRes mTexRes = BRDF_Simulator::ProgramRes::_256x256;
+    BRDF_Simulator::ProgramRes mTexResHolder = BRDF_Simulator::ProgramRes::_256x256;
     //Surface variables
     int planSize = 512; //Surface Of Microfacets size
     int planSizeTemp = planSize;

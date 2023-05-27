@@ -670,7 +670,15 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
 
 
-        if (textureSettings.dropdown("Texture Resolution", textureResolutions, (uint32_t&)mTexRes)) createTextures();
+        if (textureSettings.dropdown("Texture Resolution", textureResolutions, (uint32_t&)mTexRes))
+            if (BRDF_Simulation || continous_simulation) {
+                mTexRes = mTexResHolder;
+            }
+            else {
+                mTexResHolder   = mTexRes;
+                createTextures();
+            }
+            
     }
 
     {
