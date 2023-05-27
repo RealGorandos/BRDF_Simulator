@@ -129,7 +129,7 @@ private:
     unsigned long int seedIncOdd = 1;
     int maxJitter = 100;
     int jitterNum = 2;
-    int bounces = 0;
+    int bounces = 2;
     int jitterInternal = 2;
     int jitterInternalStatic = 2;
     int bouncesInternal = 2;

@@ -101,7 +101,7 @@ float4 psMain(VSOut vsOut) : SV_TARGET
             return float4(color, 1.f);
         }
         else if (mySimulation) {
-            color = efficient_simulation(L, N, V, distance, layerInd, uv);
+            color = render_simulated(L, N, V, distance, layerInd, uv);
             return float4(color, 1.f);
         }
     } 

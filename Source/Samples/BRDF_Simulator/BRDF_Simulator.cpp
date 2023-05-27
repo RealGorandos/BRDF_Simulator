@@ -451,7 +451,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
         simulationSettings.var("Camera Jitter", jitterNum, 1);
 
-        simulationSettings.var("Ray Bounces", bounces, 1);
+        simulationSettings.var("Ray Bounces", bounces, 2);
 
         simulationSettings.slider("Current Layer", currLayer, 1, maxLayer);
 
@@ -688,7 +688,7 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
     {
         Gui::DropdownList brdfDropdown;
         brdfDropdown.push_back({ (uint32_t)BRDF_Simulator::BRDF_Type::Cook_Torrance, "Cook Torrance" });
-        brdfDropdown.push_back({ (uint32_t)BRDF_Simulator::BRDF_Type::BRDF_Simulation, "BRDF Simulation" });
+        brdfDropdown.push_back({ (uint32_t)BRDF_Simulator::BRDF_Type::BRDF_Simulation, "Simulated" });
         if (brdf_settings.dropdown("BRDF Type", brdfDropdown, (uint32_t&)mBRDFType)) {
             switch (mBRDFType) {
             case BRDF_Simulator::BRDF_Type::Cook_Torrance:
@@ -715,7 +715,7 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
 
         if (isSimulation) {
             brdf_settings.separator();
-            brdf_settings.var("Decrease Reflection", normalizing, 1.f);
+            brdf_settings.var("Decrease Brightness", normalizing, 1.f);
             brdf_settings.var("Albedo", mAlbedo, 0.f, 1.f);
         }
     }
@@ -960,16 +960,17 @@ void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::Sha
 
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
-    mpVisualizorGraphicsState->setFbo(pTargetFbo);
-    mpModelGraphicsState->setFbo(pTargetFbo);
-    mpGraphicsState->setFbo(pTargetFbo);
-    mpEnvMapGraphicsState->setFbo(pTargetFbo);
+
 
     if (mpModelScene && !mMicrofacetes) {
+        mpModelGraphicsState->setFbo(pTargetFbo);
         rasterizeModelView(pRenderContext);
     }
     else if (mpScene && !mObjectSimulation)
     {
+        mpVisualizorGraphicsState->setFbo(pTargetFbo);
+        mpGraphicsState->setFbo(pTargetFbo);
+        mpEnvMapGraphicsState->setFbo(pTargetFbo);
         cameraJitter();
         rasterizeSurfaceView(pRenderContext);
         updateJitter();

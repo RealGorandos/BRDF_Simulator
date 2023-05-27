@@ -61,7 +61,7 @@ float3 cook_torrence_BRDF(float3 V, float3 N, float3 L, inout float3 kS) {
 float3 render(float3 L, float3 N, float3 V, float distance) {
 
     float3 Lo = float3(0.0);
-    float3 lightColor = float3(300.f);
+    float3 lightColor = float3(10.f);
 
     float attenuation = 1.0 / (distance * distance);
     float3 radiance = lightColor * attenuation;
