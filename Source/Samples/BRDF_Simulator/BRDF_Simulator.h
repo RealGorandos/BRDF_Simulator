@@ -138,11 +138,13 @@ private:
     unsigned long int seedIncOdd = 1;
     int maxJitter = 100;
     int jitterNum = 2;
+    int jitterHolder = 2;
     int bounces = 2;
     int jitterInternal = 2;
     int jitterInternalStatic = 2;
     int bouncesInternal = 2;
     int bouncesInternalStatic = 2;
+    int bouncesHolder = 2;
 
     //Buttons variables
     bool BRDF_Simulation = false;
@@ -161,6 +163,7 @@ private:
     int currLayer = 1;
     int currLayerTemp = 1;
     int currLayerInternal = 1;
+    int layerHolder = 1;
 
     //Envmap textures and samplers
     std::vector<Falcor::EnvMap::SharedPtr> textureVect;
@@ -201,4 +204,7 @@ private:
     int totallPassed = 0;
     float kEpsilon = 0.000001f;
     std::string frames;
+
+
+
 };

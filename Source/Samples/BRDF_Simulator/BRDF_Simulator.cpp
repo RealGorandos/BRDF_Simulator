@@ -289,7 +289,7 @@ void BRDF_Simulator::setEnvMapShaderVars() {
     mpEnvMapProgram->addDefine("_USE_ENV_MAP", pEnvMap ? "1" : "0");
     if (pEnvMap) {
         mpEnvMapProgramVars["PerFrameCB"]["tex2D_uav"].setTexture(textureVect[currLayer - 1]->getEnvMap());
-        mpEnvMapProgramVars["PerFrameCB"]["gSamples"] = jitterInternalStatic;
+        mpEnvMapProgramVars["PerFrameCB"]["gSamples"] = jitterHolder;
         mpEnvMapProgramVars["PerFrameCB"]["envSampler"].setSampler(samplerVect[currLayer - 1]);
     }
 
@@ -317,7 +317,7 @@ void BRDF_Simulator::setSceneVars() {
     mpProgramVars["PerFrameCB"]["BRDF_Simulation"] = BRDF_Simulation;
     mpProgramVars["PerFrameCB"]["roughness"] = roughness;
     mpProgramVars["PerFrameCB"]["surfaceSize"] = planSize;
-    mpProgramVars["PerFrameCB"]["bounces"] = bounces;
+    mpProgramVars["PerFrameCB"]["bounces"] = bouncesHolder;
 
     mpProgramVars["PerFrameCB"]["c_dir"] = normalize(mpScene->getCamera()->getTarget() - mpScene->getCamera()->getPosition());
 
@@ -337,7 +337,7 @@ void BRDF_Simulator::setModelVars() {
     mpModelProgramVars["PerFrameCB"]["startBrdf"] = runSimulation;
     mpModelProgramVars["PerFrameCB"]["cookTorrence"] = isCookTorrence;
     mpModelProgramVars["PerFrameCB"]["mySimulation"] = isSimulation;
-    mpModelProgramVars["PerFrameCB"]["gSamples"] = jitterInternalStatic;
+    mpModelProgramVars["PerFrameCB"]["gSamples"] = jitterHolder;
 
     mpModelProgramVars["PerFrameCB"]["camRes"] = float(planSize);
     
@@ -664,13 +664,22 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     {
         auto simulationSettings = w.group("Simulation Settings");
 
-
+        if (continous_simulation || BRDF_Simulation) {
+            jitterNum   = jitterHolder;
+            bounces  = bouncesHolder;
+            currLayer = currLayerInternal;
+        }
         simulationSettings.var("Camera Jitter", jitterNum, 1);
 
         simulationSettings.var("Ray Bounces", bounces, 2);
 
         simulationSettings.slider("Current Layer", currLayer, 1, maxLayer);
 
+        if (continous_simulation || BRDF_Simulation) {
+            jitterNum = jitterHolder;
+            bounces = bouncesHolder;
+            currLayer = currLayerInternal;
+        }
     }
 
     Gui::DropdownList cameraDropdown;
@@ -703,6 +712,10 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
             currLayer = maxLayer;
             updateVisualizorTransformMat();
         }
+        jitterHolder = jitterNum;
+        bouncesHolder = bounces;
+        layerHolder = currLayerInternal;
+
         currLayerInternal = currLayer;
         jitterInternal = jitterNum;
         jitterInternalStatic = jitterNum;
@@ -928,8 +941,8 @@ void BRDF_Simulator::updateJitter() {
         BRDF_Simulation = true;
         mOrthoCam = true;
         currLayer = currLayerInternal;
-        jitterInternal = jitterNum;
-        bouncesInternal = bounces;
+        jitterInternal = jitterHolder;
+        bouncesInternal = bouncesHolder;
 
         currLayer = currLayerInternal;
         currLayerTemp = currLayerInternal;
@@ -945,8 +958,8 @@ void BRDF_Simulator::updateJitter() {
         continous_simulation = false;
         BRDF_Simulation = false;
         mOrthoCam = false;
-        jitterInternal = jitterNum;
-        bouncesInternal = bounces;
+        jitterInternal = jitterHolder;
+        bouncesInternal = bouncesHolder;
 
         mpScene->getCamera()->setPosition(cameraPos);
         mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
@@ -1004,7 +1017,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
-
+    std::cout << jitterInternal << std::endl;
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
 
