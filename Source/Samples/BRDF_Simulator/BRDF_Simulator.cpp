@@ -698,7 +698,18 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::FirstPerson, "First-Person" });
     cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::Orbiter, "Orbiter" });
     cameraDropdown.push_back({ (uint32_t)Scene::CameraControllerType::SixDOF, "6-DoF" });
-    if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) setCamController();
+    if (w.dropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType)) {
+        if (BRDF_Simulation || continous_simulation) {
+            mCameraType = mCameraTypeHolder;
+        }
+        else {
+            mCameraTypeHolder = mCameraType;
+            setCamController();
+        }
+  }
+
+
+    
 
     w.separator();
     {
@@ -1032,8 +1043,6 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
 
 void BRDF_Simulator::onFrameRender(RenderContext* pRenderContext, const Fbo::SharedPtr& pTargetFbo)
 {
-    std::cout << jitterNum << std::endl;
-   // std::cout << bounces << std::endl;
     const float4 clearColor(0.4f, 0.4f, 0.4f, 1);
     pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
 

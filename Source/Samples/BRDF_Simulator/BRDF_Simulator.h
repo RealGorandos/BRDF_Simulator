@@ -119,7 +119,7 @@ private:
 
    //Dropdown lists
     Scene::CameraControllerType mCameraType = Scene::CameraControllerType::Orbiter;
-    bool updateCam = false;
+    Scene::CameraControllerType mCameraTypeHolder = Scene::CameraControllerType::Orbiter;
     BRDF_Simulator::BRDF_Type mBRDFType = BRDF_Simulator::BRDF_Type::Cook_Torrance;
     BRDF_Simulator::ProgramRes mTexRes = BRDF_Simulator::ProgramRes::_64x64;
 
