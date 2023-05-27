@@ -759,16 +759,29 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
 
     }
+    if (w.button("Stop Drawing", true) && (BRDF_Simulation || continous_simulation)){
+        continous_simulation = false;
+        BRDF_Simulation = false;
+        mOrthoCam = false;
+        jitterInternal = jitterHolder;
+        bouncesInternal = bouncesHolder;
+        createTextures();
+        mpScene->getCamera()->setPosition(cameraPos);
+        mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
+        (currLayer == 15) ? mpScene->getCamera()->setUpVector(float3(1, 0, 0)) : mpScene->getCamera()->setUpVector(float3(0, 1, 0));
+    }
+
+
     if (w.button("Clear Textures", true) && !BRDF_Simulation && !continous_simulation) { createTextures();}
 
     if (mpModelScene) {
-        if (w.button("View Model", true) && !BRDF_Simulation && !continous_simulation) {
+        if (w.button("View Model", false) && !BRDF_Simulation && !continous_simulation) {
             mObjectSimulation = true;
             mMicrofacetes = false;
         }
     }
 
-    if (w.button("Load Model", !mpModelScene) && !BRDF_Simulation && !continous_simulation)
+    if (w.button("Load Model", (mpModelScene) ? true : false) && !BRDF_Simulation && !continous_simulation)
     {
         mObjectSimulation = true;
         mMicrofacetes = false;
