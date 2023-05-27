@@ -18,7 +18,7 @@ float3 render_simulated(float3 L, float3 N, float3 V, float distance,int layerIn
 
     float NdotL = max(dot(N, L), 0.0);
     float attenuation = 1.0 / (distance * distance);
-    float3 lightColor = float3(10.f);
+    float3 lightColor = float3(300.f);
     float3 radiance = lightColor * attenuation;
 
     float3 specular_init = float3(0.f);
@@ -96,8 +96,8 @@ float3 render_simulated(float3 L, float3 N, float3 V, float distance,int layerIn
 
     float3 color = (albedo / PI + specular) * radiance * NdotL;
 
-    //color = color / (color + float3(1.0));
-    //color = pow(color, float3(1.0 / 2.2));
+    color = color / (color + float3(1.0));
+    color = pow(color, float3(1.0 / 2.2));
 
     return color;
 }

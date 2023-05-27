@@ -732,7 +732,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         }
     }
     w.separator();
-    if (w.button("Draw To Textures")) {
+    if (w.button("Draw To Textures") && !BRDF_Simulation && !continous_simulation) {
         createTextures();
         seedIncEven = 1;
         seedIncOdd = 1;
@@ -759,16 +759,16 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         mpScene->getCamera()->setUpVector(float3(0, 1, 0));
 
     }
-    if (w.button("Clear Textures", true)) { createTextures();}
+    if (w.button("Clear Textures", true) && !BRDF_Simulation && !continous_simulation) { createTextures();}
 
     if (mpModelScene) {
-        if (w.button("View Model", true)) {
+        if (w.button("View Model", true) && !BRDF_Simulation && !continous_simulation) {
             mObjectSimulation = true;
             mMicrofacetes = false;
         }
     }
 
-    if (w.button("Load Model", !mpModelScene))
+    if (w.button("Load Model", !mpModelScene) && !BRDF_Simulation && !continous_simulation)
     {
         mObjectSimulation = true;
         mMicrofacetes = false;
@@ -780,7 +780,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     }
 
 
-    if (w.button("Run Test", true)) {
+    if (w.button("Run Test", true) && !BRDF_Simulation && !continous_simulation) {
         runTest = true;
         
     }
