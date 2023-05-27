@@ -8,6 +8,7 @@
 
 
 #pragma region HELPER METHODS SECTION
+/*Test loading model object from a file*/
 void BRDF_Simulator::loadFromFileTesting(const std::filesystem::path& path, ResourceFormat fboFormat) {
 
     SceneBuilder::Flags flags = SceneBuilder::Flags::None;
@@ -25,6 +26,85 @@ void BRDF_Simulator::loadFromFileTesting(const std::filesystem::path& path, Reso
 
 }
 
+/*View Model Stats*/
+void BRDF_Simulator::viewModelStats(Gui::Group& statsGroup) {
+    const auto& s = mpModelScene->getSceneStats();
+    const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
+    std::ostringstream oss;
+
+    // Frames stats.
+    oss << "Frame Stats: " << frames << std::endl
+        << std::endl;
+
+    // Geometry stats.
+    oss << "Geometry stats:" << std::endl
+        << "  Mesh count: " << s.meshCount << std::endl
+        << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
+        << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
+        << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
+        << "  Transform matrix count: " << s.transformCount << std::endl
+        << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
+        << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
+        << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
+        << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
+        << std::endl;
+
+
+    oss << std::endl;
+
+
+    if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
+
+    statsGroup.text(oss.str());
+
+
+
+
+}
+
+/*View Surface Stats*/
+void BRDF_Simulator::viewSurfaceStats(Gui::Group& statsGroup) {
+    const auto& s = mpScene->getSceneStats();
+    const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
+    std::ostringstream oss;
+
+    // Frames stats.
+    oss << "Frame Stats: " << frames << std::endl
+        << std::endl;
+
+    // Geometry stats.
+    oss << "Geometry stats:" << std::endl
+        << "  Mesh count: " << s.meshCount << std::endl
+        << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
+        << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
+        << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
+        << "  Transform matrix count: " << s.transformCount << std::endl
+        << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
+        << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
+        << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
+        << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
+        << std::endl;
+
+    // Environment map stats.
+    oss << "Environment map:" << std::endl;
+    auto mpEnvMap = textureVect[currLayer - 1];
+    if (mpEnvMap)
+    {
+        oss << "  Resolution: " << textureVect[currLayer - 1]->getEnvMap()->getWidth() << "x" << textureVect[currLayer - 1]->getEnvMap()->getHeight() << std::endl;
+    }
+    else
+    {
+        oss << "  N/A" << std::endl;
+    }
+
+    oss << std::endl;
+
+    oss << "Rays Stats:" << std::endl;
+    oss << "  Rays Count: " << float(planSize) * float(planSize) * jitterNum * maxLayer << std::endl;
+    if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
+
+    statsGroup.text(oss.str());
+}
 
 /*Gets a random number*/
 float get_random(unsigned long int jitterInternal)
@@ -607,47 +687,8 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
 
         if (auto statsGroup = w.group("Statistics"))
         {
-            const auto& s = mpScene->getSceneStats();
-            const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
-            std::ostringstream oss;
-
-            // Frames stats.
-            oss << "Frame Stats: " << frames << std::endl
-            << std::endl;
-
-            // Geometry stats.
-            oss << "Geometry stats:" << std::endl
-                << "  Mesh count: " << s.meshCount << std::endl
-                << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
-                << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
-                << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
-                << "  Transform matrix count: " << s.transformCount << std::endl
-                << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
-                << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
-                << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
-                << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
-                << std::endl;
-
-            // Environment map stats.
-            oss << "Environment map:" << std::endl;
-            auto mpEnvMap = textureVect[currLayer - 1];
-            if (mpEnvMap)
-            {
-                oss << "  Resolution: " << textureVect[currLayer - 1]->getEnvMap()->getWidth() << "x" << textureVect[currLayer - 1]->getEnvMap()->getHeight() << std::endl;
-            }
-            else
-            {
-                oss << "  N/A" << std::endl;
-            }
-
-            oss << std::endl;
-
-            oss << "Rays Stats:" << std::endl;
-            oss << "  Rays Count: " << float(planSize) * float(planSize) * jitterNum * currLayer * 2  << std::endl;
-            if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
-
-            statsGroup.text(oss.str());
-
+          
+            viewSurfaceStats(statsGroup);
         }
     }
     w.separator();
@@ -754,35 +795,7 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
     w.separator();
     if (auto statsGroup = w.group("Statistics"))
     {
-        const auto& s = mpModelScene->getSceneStats();
-        const double bytesPerTexel = s.materials.textureTexelCount > 0 ? (double)s.materials.textureMemoryInBytes / s.materials.textureTexelCount : 0.0;
-        std::ostringstream oss;
-
-        // Frames stats.
-        oss << "Frame Stats: " << frames << std::endl
-            << std::endl;
-
-        // Geometry stats.
-        oss << "Geometry stats:" << std::endl
-            << "  Mesh count: " << s.meshCount << std::endl
-            << "  Mesh instance count (total): " << s.meshInstanceCount << std::endl
-            << "  Mesh instance count (opaque): " << s.meshInstanceOpaqueCount << std::endl
-            << "  Mesh instance count (non-opaque): " << (s.meshInstanceCount - s.meshInstanceOpaqueCount) << std::endl
-            << "  Transform matrix count: " << s.transformCount << std::endl
-            << "  Unique triangle count: " << s.uniqueTriangleCount << std::endl
-            << "  Unique vertex count: " << s.uniqueVertexCount << std::endl
-            << "  Instanced triangle count: " << s.instancedTriangleCount << std::endl
-            << "  Instanced vertex count: " << s.instancedVertexCount << std::endl
-            << std::endl;
-
-
-        oss << std::endl;
-
-
-        if (statsGroup.button("Print to log")) logInfo("\n" + oss.str());
-
-        statsGroup.text(oss.str());
-
+        viewModelStats(statsGroup);
     }
 
     w.separator();

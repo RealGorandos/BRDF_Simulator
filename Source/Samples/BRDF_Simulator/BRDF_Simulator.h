@@ -74,6 +74,12 @@ private:
     //Run Testing
     void startTest(Gui::Window& w, Gui::DropdownList textureResolutions);
 
+    //View Model Stats
+    void viewModelStats(Gui::Group& statsGroup);
+
+    //View Surface Stats
+    void viewSurfaceStats(Gui::Group& statsGroup);
+
     Sampler::SharedPtr mpPointSampler = nullptr;
     DepthStencilState::SharedPtr mpDepthTestDS = nullptr;
 
