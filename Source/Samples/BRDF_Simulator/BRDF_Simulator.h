@@ -69,7 +69,7 @@ private:
     void updateJitter();
 
     //Update EnvMap texture function
-    void createTextures();
+    void updateTextures();
 
     //Run Testing
     void startTest(Gui::Window& w, Gui::DropdownList textureResolutions);

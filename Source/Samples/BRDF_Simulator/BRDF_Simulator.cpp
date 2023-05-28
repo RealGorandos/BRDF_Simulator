@@ -117,7 +117,7 @@ float get_random(unsigned long int jitterInternal)
 }
 
 /*Updates and clears textures*/
-void BRDF_Simulator::createTextures() {
+void BRDF_Simulator::updateTextures() {
     textureVect.clear();
     samplerVect.clear();
     switch (mTexRes) {
@@ -173,7 +173,7 @@ void BRDF_Simulator::startTest(Gui::Window& w, Gui::DropdownList textureResoluti
             int currRes = 32;
             for (auto resType : textureResolutions) {
                 (uint32_t&)mTexRes = resType.value;
-                createTextures();
+                updateTextures();
                 textureOSS << "\tTesting Resolution " << std::to_string(currRes) << "x" << std::to_string(currRes) << std::endl;
                 for (int i = 0; i < 15; i++) {
                     int width = textureVect[i]->getEnvMap()->getWidth();
@@ -641,7 +641,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
             
             planSize = planSizeTemp;
             scaleFactor = planSize / float(maxPlaneSize);
-            createTextures();
+            updateTextures();
             renderSurface();
             updateVisualizorTransformMat();
 
@@ -676,7 +676,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
             }
             else {
                 mTexResHolder   = mTexRes;
-                createTextures();
+                updateTextures();
             }
             
     }
@@ -733,7 +733,7 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
     }
     w.separator();
     if (w.button("Draw To Textures") && !BRDF_Simulation && !continous_simulation) {
-        createTextures();
+        updateTextures();
         seedIncEven = 1;
         seedIncOdd = 1;
 
@@ -765,14 +765,14 @@ void BRDF_Simulator::loadSurfaceGUI(Gui::Window& w) {
         mOrthoCam = false;
         jitterInternal = jitterHolder;
         bouncesInternal = bouncesHolder;
-        createTextures();
+        updateTextures();
         mpScene->getCamera()->setPosition(cameraPos);
         mpScene->getCamera()->setTarget(float3(float(planSize + 2) / 2.f, 0.f, float(planSize + 2) / 2.f));
         (currLayer == 15) ? mpScene->getCamera()->setUpVector(float3(1, 0, 0)) : mpScene->getCamera()->setUpVector(float3(0, 1, 0));
     }
 
 
-    if (w.button("Clear Textures", true) && !BRDF_Simulation && !continous_simulation) { createTextures();}
+    if (w.button("Clear Textures", true) && !BRDF_Simulation && !continous_simulation) { updateTextures();}
 
     if (mpModelScene) {
         if (w.button("View Model", false) && !BRDF_Simulation && !continous_simulation) {
@@ -1053,7 +1053,7 @@ void BRDF_Simulator::onLoad(RenderContext* pRenderContext)
     mpPointSampler = Sampler::create(samplerDesc);
 
 
-    createTextures();
+    updateTextures();
    
     resetCamera();
     renderSurface();
