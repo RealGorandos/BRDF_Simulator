@@ -847,7 +847,7 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
 
         if (isSimulation) {
             brdf_settings.separator();
-            brdf_settings.var("Decrease Brightness", normalizing, 1.f);
+            brdf_settings.var("Normalizing Factor", normalizing, 1.f);
             brdf_settings.var("Albedo", mAlbedo, 0.f, 1.f);
         }
     }
@@ -859,11 +859,11 @@ void BRDF_Simulator::loadModelGUI(Gui::Window& w) {
     }
 
     w.separator();
-    if (w.button("Start Simulation")) {
+    if (w.button("Start BRDF")) {
         runSimulation = true;
     }
 
-    if (w.button("Stop Simulation", true)) {
+    if (w.button("Stop BRDF", true)) {
         runSimulation = false;
     }
 
