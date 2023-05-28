@@ -8,23 +8,7 @@
 
 
 #pragma region HELPER METHODS SECTION
-/*Test loading model object from a file*/
-void BRDF_Simulator::loadFromFileTesting(const std::filesystem::path& path, ResourceFormat fboFormat) {
 
-    SceneBuilder::Flags flags = SceneBuilder::Flags::None;
-    flags |= isSrgbFormat(fboFormat) ? SceneBuilder::Flags::None : SceneBuilder::Flags::AssumeLinearSpaceTextures;
-
-    try
-    {
-        mpTestModelScene = SceneBuilder::create(path, flags)->getScene();
-    }
-    catch (const std::exception& e)
-    {
-        msgBox(fmt::format("Failed to load model.\n\n{}", e.what()));
-        return;
-    }
-
-}
 
 /*View Model Stats*/
 void BRDF_Simulator::viewModelStats(Gui::Group& statsGroup) {
@@ -207,7 +191,7 @@ void BRDF_Simulator::startTest(Gui::Window& w, Gui::DropdownList textureResoluti
             Falcor::Scene::SceneStats b;
             modelOSS << "\tTest loading a Model with few triangles: " << std::endl;
 
-            loadFromFileTesting("Lucy.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+            loadModelFromFile("Lucy.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat(), true);
             modelOSS << "\t\t\tModel: Lucy.obj" << std::endl;
             modelOSS << "\t\t\t\tOpening Model --> ";
             if (mpTestModelScene) {
@@ -224,7 +208,7 @@ void BRDF_Simulator::startTest(Gui::Window& w, Gui::DropdownList textureResoluti
             modelOSS << "\tTest loading a model with a lot triangles: " << std::endl;
             mpTestModelScene = nullptr;
 
-            loadFromFileTesting("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat());
+            loadModelFromFile("Bunny.obj", gpFramework->getTargetFbo()->getColorTexture(0)->getFormat(), true);
             modelOSS << "\t\t\tModel: Bunny.obj" << std::endl;
             modelOSS << "\t\t\t\tOpening Model --> ";
             if (mpTestModelScene) {
@@ -530,35 +514,55 @@ void BRDF_Simulator::loadOrthoVisualizor(int currLayer) {
 
 #pragma region LOAD FROM A FILE TO THE MODEL SCENE SECTION
 /*Load an object from a file*/
-void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat)
+void BRDF_Simulator::loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat, bool test)
 {
 
+    if (test) {
+        SceneBuilder::Flags flags = SceneBuilder::Flags::None;
+        flags |= isSrgbFormat(fboFormat) ? SceneBuilder::Flags::None : SceneBuilder::Flags::AssumeLinearSpaceTextures;
 
-    SceneBuilder::Flags flags = SceneBuilder::Flags::None;
-    flags |= isSrgbFormat(fboFormat) ? SceneBuilder::Flags::None : SceneBuilder::Flags::AssumeLinearSpaceTextures;
-
-    try
-    {
-        mpModelScene = SceneBuilder::create(path, flags)->getScene();
+        try
+        {
+            mpTestModelScene = SceneBuilder::create(path, flags)->getScene();
+        }
+        catch (const std::exception& e)
+        {
+            msgBox(fmt::format("Failed to load model.\n\n{}", e.what()));
+            return;
+        }
     }
-    catch (const std::exception& e)
-    {
-        msgBox(fmt::format("Failed to load model.\n\n{}", e.what()));
-        return;
+    else {
+        SceneBuilder::Flags flags = SceneBuilder::Flags::None;
+        flags |= isSrgbFormat(fboFormat) ? SceneBuilder::Flags::None : SceneBuilder::Flags::AssumeLinearSpaceTextures;
+
+        try
+        {
+            mpModelScene = SceneBuilder::create(path, flags)->getScene();
+        }
+        catch (const std::exception& e)
+        {
+            msgBox(fmt::format("Failed to load model.\n\n{}", e.what()));
+            return;
+        }
+
+        Program::Desc desc;
+        desc.addShaderModules(mpModelScene->getShaderModules());
+        desc.addShaderLibrary("Samples/BRDF_Simulator/Model.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
+        desc.addTypeConformances(mpModelScene->getTypeConformances());
+
+        mpModelProgram = GraphicsProgram::create(desc, mpModelScene->getSceneDefines());
+        mpModelProgramVars = GraphicsVars::create(mpModelProgram->getReflector());
+        mpModelGraphicsState->setProgram(mpModelProgram);
+
+        mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
+        setCamController();
+
+
     }
 
-    Program::Desc desc;
-    desc.addShaderModules(mpModelScene->getShaderModules());
-    desc.addShaderLibrary("Samples/BRDF_Simulator/Model.3d.hlsl").vsEntry("vsMain").psEntry("psMain");
-    desc.addTypeConformances(mpModelScene->getTypeConformances());
-
-    mpModelProgram = GraphicsProgram::create(desc, mpModelScene->getSceneDefines());
-    mpModelProgramVars = GraphicsVars::create(mpModelProgram->getReflector());
-    mpModelGraphicsState->setProgram(mpModelProgram);
-
-    mpModelScene->getMaterialSystem()->setDefaultTextureSampler(mpPointSampler);
-    setCamController();
 }
+
+
 /*Loads the path of the model
 * return: True if the object was found. Otherwise, false.
 */
@@ -568,7 +572,7 @@ bool BRDF_Simulator::loadModel(ResourceFormat fboFormat)
     if (openFileDialog(Scene::getFileExtensionFilters(), path))
     {
         
-        loadModelFromFile(path, fboFormat);
+        loadModelFromFile(path, fboFormat, false);
         return true;
     }
     return false;

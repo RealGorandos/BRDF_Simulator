@@ -33,8 +33,7 @@ public:
 private:
     //Loading model from a file
     bool loadModel(ResourceFormat fboFormat);
-    void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat);
-    void loadFromFileTesting(const std::filesystem::path& path, ResourceFormat fboFormat);
+    void loadModelFromFile(const std::filesystem::path& path, ResourceFormat fboFormat, bool test);
 
     //Render the microfacts surface
     void renderSurface();
