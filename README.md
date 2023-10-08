@@ -2,22 +2,30 @@
 
 My thesis is about efficient simulation of bidirectional reflectance distribution functions (BRDFs). This repository contains my thesis program as well as the paperwork.
 
-======
+---
+
 # - BRDF_Simulator
 
 This is a solution that introduces a method for efficiently simulating Bidirectional Reflectance Distribution Functions (BRDFs) by applying ray tracing on a generated surface of microfacets and storing the outgoing rays in sky-maps. It is then utilized and compared with existing models, such as the Cook-Torrance model, in a few sample scenes. This solution is powered by Nvidia Falcor Framework, which is a real-time rendering framework supporting DirectX 12 and Vulkan.
 
-![Alt text](image-1.png)
 
-![Alt text](image.png)
+<p align="center">
+  <img src="https://github.com/RealGorandos/BRDF_Simulator/assets/84874186/b9bc8596-b234-4f29-a420-be7860337e32" />
+</p>
 
-======
+<p align="center">
+  <img src="https://github.com/RealGorandos/BRDF_Simulator/assets/84874186/96304de9-bddb-478f-9448-6b017e1d5e11" />
+</p>
+
+
+---
+
 # - Falcor 5.2
 
-Check Falcor repository to read about the framework prerequisties: [Falcor](https://github.com/NVIDIAGameWorks/Falcor)
+Click [here](https://github.com/NVIDIAGameWorks/Falcor) to read about falcor framework and its prerequisties.
 
-======
-## Citation
+## - Citation
+
 If you use Falcor in a research project leading to a publication, please cite the project.
 The BibTex entry is
 
