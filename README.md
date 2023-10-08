@@ -10,11 +10,12 @@ This is a solution that introduces a method for efficiently simulating Bidirecti
 
 
 <p align="center">
-  <img src="https://github.com/RealGorandos/BRDF_Simulator/assets/84874186/b9bc8596-b234-4f29-a420-be7860337e32" />
+  <img src="https://github.com/RealGorandos/BRDF_Simulator/assets/84874186/cc7384bb-a9bd-4f5c-a635-952ede222dd2" />
 </p>
 
+
 <p align="center">
-  <img src="https://github.com/RealGorandos/BRDF_Simulator/assets/84874186/96304de9-bddb-478f-9448-6b017e1d5e11" />
+  <img src="https://github.com/RealGorandos/BRDF_Simulator/assets/84874186/39e5bfff-c280-45c7-8c14-2885258e76ec" />
 </p>
 
 
